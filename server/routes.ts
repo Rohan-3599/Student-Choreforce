@@ -7,7 +7,7 @@ import { seedTasks } from "./seed";
 
 const CATEGORY_PRICES: Record<string, number | undefined> = {
   grocery_shopping: undefined,
-  dorm_cleaning: 35,
+  dorm_cleaning: undefined,
   laundry: undefined,
 };
 

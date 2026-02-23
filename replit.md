@@ -30,8 +30,8 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 
 ## Fixed Prices
 - Grocery Shopping: 10% service charge + 15% delivery fee (percentage of grocery bill)
-- Dorm Cleaning: $35
-- Laundry: $20
+- Dorm Cleaning: Basic Organizing $20 base / Deep Room Clean $45 base + $15/hr after 1st hour
+- Laundry: $20/load + $5/load optional folding
 
 ## Pages
 - `/` (logged out) - Landing page with pricing info
@@ -39,6 +39,7 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - `/tasker` - Tasker page: browse open tasks, view My Jobs/Completed tabs
 - `/shop` - Grocery shop: pick store, browse items, add to cart, checkout
 - `/laundry` - Laundry service: configure loads, wash/dry options, washer/dryer settings
+- `/cleaning` - Dorm cleaning: Basic Organizing ($20) or Deep Room Clean ($45) + $15/hr after first hour
 
 ## API Routes
 - `GET /api/tasks?category=` - List tasks (optional category filter)
