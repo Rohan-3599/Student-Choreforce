@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -20,6 +20,16 @@ export const taskStatusEnum = pgEnum("task_status", [
   "cancelled",
 ]);
 
+export const groceryItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+  store: z.string(),
+  quantity: z.number().min(1).default(1),
+});
+
+export type GroceryItemSelection = z.infer<typeof groceryItemSchema>;
+
 export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -30,6 +40,7 @@ export const tasks = pgTable("tasks", {
   location: text("location").notNull(),
   posterId: varchar("poster_id").notNull().references(() => users.id),
   claimerId: varchar("claimer_id").references(() => users.id),
+  groceryItems: jsonb("grocery_items"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
@@ -56,6 +67,7 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   location: z.string().min(2, "Location is required"),
+  groceryItems: z.array(groceryItemSchema).optional(),
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;

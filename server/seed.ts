@@ -52,6 +52,14 @@ export async function seedTasks() {
         budget: CATEGORY_PRICES.grocery_shopping,
         location: "Parkside Arts & Humanities, Room 312",
         posterId: "seed-user-1",
+        groceryItems: [
+          { id: "tj-7", name: "Whole Milk (half gallon)", price: 3.29, store: "trader_joes", quantity: 1 },
+          { id: "tj-6", name: "Organic Free Range Eggs (dozen)", price: 4.49, store: "trader_joes", quantity: 1 },
+          { id: "tj-12", name: "Sourdough Bread Loaf", price: 3.99, store: "trader_joes", quantity: 1 },
+          { id: "tj-1", name: "Bananas (bunch)", price: 0.19, store: "trader_joes", quantity: 3 },
+          { id: "tj-15", name: "Chicken Breast (per lb)", price: 6.99, store: "trader_joes", quantity: 2 },
+          { id: "tj-14", name: "Organic Pasta (penne)", price: 1.29, store: "trader_joes", quantity: 2 },
+        ],
       },
       {
         title: "Deep clean my dorm room before parents visit",
@@ -70,12 +78,18 @@ export async function seedTasks() {
         posterId: "seed-user-3",
       },
       {
-        title: "Costco run for party supplies",
-        description: "Throwing a study group party. Need chips, soda, cups, napkins, and a veggie tray from Costco. I have a Costco membership card you can borrow. Will reimburse for all items plus pay the service fee.",
+        title: "Target snack and drink run for study session",
+        description: "Need snacks and drinks from Target at USC Village for a group study session tonight. Getting chips, cookies, soda, and water. Can pick up from the common room.",
         category: "grocery_shopping" as const,
         budget: CATEGORY_PRICES.grocery_shopping,
         location: "Troy Hall, Common Room",
         posterId: "seed-user-1",
+        groceryItems: [
+          { id: "tg-9", name: "Good & Gather Tortilla Chips", price: 2.99, store: "target", quantity: 2 },
+          { id: "tg-8", name: "Favorite Day Chocolate Chip Cookies", price: 3.49, store: "target", quantity: 1 },
+          { id: "tg-18", name: "Coca-Cola (12pk cans)", price: 7.99, store: "target", quantity: 1 },
+          { id: "tg-17", name: "Smartwater (6pk bottles)", price: 7.49, store: "target", quantity: 1 },
+        ],
       },
       {
         title: "Quick bathroom and kitchen clean",
