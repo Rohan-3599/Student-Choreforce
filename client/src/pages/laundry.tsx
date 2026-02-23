@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import {
   WashingMachine, Zap, LogOut, ArrowLeft, Minus, Plus,
-  CheckCircle, Droplets, Wind, Thermometer, RotateCw,
+  CheckCircle, Droplets, Wind, Thermometer, RotateCw, Shirt,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -38,6 +39,7 @@ const DRY_HEATS = ["No Heat / Air Dry", "Low", "Medium", "High"] as const;
 const DRY_CYCLES = ["Normal", "Delicates", "Heavy Duty", "Timed Dry", "Permanent Press"] as const;
 
 const PRICE_PER_LOAD = 20;
+const FOLDING_FEE_PER_LOAD = 5;
 
 export default function LaundryPage() {
   const { user, logout } = useAuth();
@@ -50,11 +52,14 @@ export default function LaundryPage() {
   const [washCycle, setWashCycle] = useState<string>("Normal");
   const [dryHeat, setDryHeat] = useState<string>("Medium");
   const [dryCycle, setDryCycle] = useState<string>("Normal");
+  const [includeFolding, setIncludeFolding] = useState(false);
   const [pickupLocation, setPickupLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  const totalPrice = loads * PRICE_PER_LOAD;
+  const basePrice = loads * PRICE_PER_LOAD;
+  const foldingPrice = includeFolding ? loads * FOLDING_FEE_PER_LOAD : 0;
+  const totalPrice = basePrice + foldingPrice;
   const showWasher = serviceType === "wash" || serviceType === "both";
   const showDryer = serviceType === "dry" || serviceType === "both";
 
@@ -63,9 +68,10 @@ export default function LaundryPage() {
       const settingsParts: string[] = [];
       if (showWasher) settingsParts.push(`Wash: ${washTemp}, ${washCycle}`);
       if (showDryer) settingsParts.push(`Dry: ${dryHeat}, ${dryCycle}`);
+      if (includeFolding) settingsParts.push("Folding included");
 
       const res = await apiRequest("POST", "/api/tasks", {
-        title: `Laundry ${SERVICE_LABELS[serviceType]} — ${loads} load${loads > 1 ? "s" : ""}`,
+        title: `Laundry ${SERVICE_LABELS[serviceType]}${includeFolding ? " + Folding" : ""} — ${loads} load${loads > 1 ? "s" : ""}`,
         description: `${SERVICE_LABELS[serviceType]} service for ${loads} load${loads > 1 ? "s" : ""}. ${settingsParts.join(". ")}. ${notes ? `Notes: ${notes}` : ""}`.trim(),
         category: "laundry",
         budget: totalPrice,
@@ -278,13 +284,47 @@ export default function LaundryPage() {
           </Card>
         )}
 
-        <div className="rounded-lg border bg-violet-50 dark:bg-violet-950/20 p-4 space-y-1">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{loads} load{loads > 1 ? "s" : ""} x ${PRICE_PER_LOAD}</span>
+        <Card data-testid="card-folding-service">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shirt className="w-5 h-5 text-pink-500" />
+                <div>
+                  <h3 className="font-semibold text-base">Folding Service</h3>
+                  <p className="text-xs text-muted-foreground">+${FOLDING_FEE_PER_LOAD} per load</p>
+                </div>
+              </div>
+              <Switch
+                checked={includeFolding}
+                onCheckedChange={setIncludeFolding}
+                data-testid="switch-folding"
+              />
+            </div>
+            {includeFolding && (
+              <div className="rounded-md bg-pink-50 dark:bg-pink-950/20 p-3 text-sm text-muted-foreground">
+                Your clothes will be neatly folded and organized after washing/drying. Folding adds ${FOLDING_FEE_PER_LOAD} per load (${foldingPrice} total for {loads} load{loads > 1 ? "s" : ""}).
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="rounded-lg border bg-violet-50 dark:bg-violet-950/20 p-4 space-y-2">
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{loads} load{loads > 1 ? "s" : ""} x ${PRICE_PER_LOAD}</span>
+            <span>${basePrice}</span>
+          </div>
+          {includeFolding && (
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Folding x {loads}</span>
+              <span>+${foldingPrice}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center border-t pt-2">
+            <span className="font-semibold text-sm">Total</span>
             <span className="text-lg font-bold" data-testid="text-total-price">${totalPrice}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {SERVICE_LABELS[serviceType]} · {showWasher ? `${washTemp}, ${washCycle}` : ""}{showWasher && showDryer ? " · " : ""}{showDryer ? `${dryHeat}, ${dryCycle}` : ""}
+            {SERVICE_LABELS[serviceType]}{includeFolding ? " + Folding" : ""} · {showWasher ? `${washTemp}, ${washCycle}` : ""}{showWasher && showDryer ? " · " : ""}{showDryer ? `${dryHeat}, ${dryCycle}` : ""}
           </p>
         </div>
 
@@ -311,7 +351,7 @@ export default function LaundryPage() {
             <div className="rounded-lg bg-muted/50 p-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>{loads} load{loads > 1 ? "s" : ""} — {SERVICE_LABELS[serviceType]}</span>
-                <span className="font-medium">${totalPrice}</span>
+                <span className="font-medium">${basePrice}</span>
               </div>
               {showWasher && (
                 <div className="text-xs text-muted-foreground">
@@ -321,6 +361,12 @@ export default function LaundryPage() {
               {showDryer && (
                 <div className="text-xs text-muted-foreground">
                   Dry: {dryHeat}, {dryCycle}
+                </div>
+              )}
+              {includeFolding && (
+                <div className="flex justify-between text-sm">
+                  <span>Folding service</span>
+                  <span className="font-medium">+${foldingPrice}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold border-t pt-2">
