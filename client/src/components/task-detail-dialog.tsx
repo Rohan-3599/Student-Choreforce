@@ -2,9 +2,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, DollarSign, User } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MapPin, Clock, DollarSign, User, ShoppingCart } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
-import type { Task } from "@shared/schema";
+import { STORE_LABELS } from "@/lib/grocery-catalog";
+import type { Task, GroceryItemSelection } from "@shared/schema";
 import type { User as AuthUser } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
 
@@ -44,9 +46,13 @@ export function TaskDetailDialog({
   const canComplete = task.status === "claimed" && (isOwner || isClaimer);
   const canCancel = task.status === "open" && isOwner;
 
+  const groceryItems = (task.groceryItems as GroceryItemSelection[] | null) ?? [];
+  const hasGroceryItems = task.category === "grocery_shopping" && groceryItems.length > 0;
+  const itemsTotal = groceryItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={hasGroceryItems ? "sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col" : "sm:max-w-lg"}>
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-md ${category.bgColor} flex items-center justify-center shrink-0`}>
@@ -64,7 +70,7 @@ export function TaskDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 pt-2">
+        <div className="space-y-5 pt-2 flex-1 overflow-auto">
           <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-detail-description">
             {task.description}
           </p>
@@ -73,7 +79,7 @@ export function TaskDetailDialog({
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <DollarSign className="w-3.5 h-3.5" />
-                Budget
+                Service Fee
               </div>
               <p className="font-bold text-lg" data-testid="text-detail-budget">${task.budget}</p>
             </div>
@@ -85,6 +91,38 @@ export function TaskDetailDialog({
               <p className="text-sm font-medium" data-testid="text-detail-location">{task.location}</p>
             </div>
           </div>
+
+          {hasGroceryItems && (
+            <div className="border rounded-md p-3 space-y-2" data-testid="section-grocery-items">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold text-sm">Shopping List</span>
+                </div>
+                <Badge variant="secondary" data-testid="badge-items-total">
+                  {groceryItems.reduce((s, i) => s + i.quantity, 0)} items · ${itemsTotal.toFixed(2)}
+                </Badge>
+              </div>
+              <ScrollArea className="max-h-[150px]">
+                <div className="space-y-1 pr-2">
+                  {groceryItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-1 text-sm" data-testid={`detail-grocery-item-${idx}`}>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="truncate">{item.name}</span>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {STORE_LABELS[item.store] ?? item.store}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-muted-foreground">×{item.quantity}</span>
+                        <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
 
           {task.createdAt && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
