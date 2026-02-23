@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, Send } from "lucide-react";
+import { Zap, LogOut, ClipboardList, Send, ShoppingCart } from "lucide-react";
 import type { Task, TaskCategory } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
@@ -86,6 +86,12 @@ export default function TaskerPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <Link href="/shop">
+              <Button variant="outline" size="sm" data-testid="button-shop-groceries">
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                Shop Groceries
+              </Button>
+            </Link>
             <Link href="/">
               <Button variant="outline" size="sm" data-testid="button-switch-requester">
                 <Send className="w-3.5 h-3.5 mr-1.5" />
