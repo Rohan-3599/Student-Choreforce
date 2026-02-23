@@ -29,7 +29,7 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - `client/src/lib/grocery-catalog.ts` - Grocery catalog (100+ items from TJ's and Target with prices)
 
 ## Fixed Prices
-- Grocery Shopping: $25 (service fee)
+- Grocery Shopping: 10% service charge + 15% delivery fee (percentage of grocery bill)
 - Dorm Cleaning: $35
 - Laundry: $20
 

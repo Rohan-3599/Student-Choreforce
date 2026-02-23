@@ -75,7 +75,7 @@ export default function LandingPage() {
                   icon={ShoppingCart}
                   title="Grocery Shopping"
                   description="Fresh groceries delivered to your dorm"
-                  price="$25"
+                  price="10% + 15%"
                   colorClass="text-emerald-600 dark:text-emerald-400"
                   bgClass="bg-emerald-50 dark:bg-emerald-950/30"
                 />

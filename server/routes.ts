@@ -5,8 +5,8 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { insertTaskSchema } from "@shared/schema";
 import { seedTasks } from "./seed";
 
-const CATEGORY_PRICES: Record<string, number> = {
-  grocery_shopping: 25,
+const CATEGORY_PRICES: Record<string, number | undefined> = {
+  grocery_shopping: undefined,
   dorm_cleaning: 35,
   laundry: 20,
 };

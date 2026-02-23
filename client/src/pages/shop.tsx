@@ -72,7 +72,10 @@ export default function ShopPage() {
   const cartItems = Array.from(cart.values());
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const serviceFee = 25;
+  const serviceCharge = Math.round(cartTotal * 0.10 * 100) / 100;
+  const deliveryFee = Math.round(cartTotal * 0.15 * 100) / 100;
+  const totalFees = serviceCharge + deliveryFee;
+  const orderTotal = cartTotal + totalFees;
 
   function addToCart(item: GroceryItem) {
     setCart((prev) => {
@@ -117,7 +120,7 @@ export default function ShopPage() {
         title: `${storeName} delivery to ${deliveryLocation}`,
         description: `Grocery delivery from ${storeName} at USC Village. ${deliveryNotes ? `Notes: ${deliveryNotes}` : ""}`.trim(),
         category: "grocery_shopping",
-        budget: serviceFee,
+        budget: Math.round(orderTotal * 100) / 100,
         location: deliveryLocation,
         groceryItems: cartItems,
       });
@@ -212,7 +215,7 @@ export default function ShopPage() {
           <div className="mt-10 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm text-muted-foreground">
               <ShoppingCart className="w-4 h-4" />
-              $25 service fee · Delivery to any USC dorm or building
+              10% service charge + 15% delivery fee · Delivery to any USC dorm or building
             </div>
           </div>
         </main>
@@ -325,12 +328,16 @@ export default function ShopPage() {
                         <span className="font-medium" data-testid="text-subtotal">${cartTotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tasker service fee</span>
-                        <span className="font-medium">${serviceFee.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Service charge (10%)</span>
+                        <span className="font-medium">${serviceCharge.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Delivery fee (15%)</span>
+                        <span className="font-medium">${deliveryFee.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-base font-bold border-t pt-2">
                         <span>Total</span>
-                        <span data-testid="text-cart-total">${(cartTotal + serviceFee).toFixed(2)}</span>
+                        <span data-testid="text-cart-total">${orderTotal.toFixed(2)}</span>
                       </div>
                       <Button
                         className="w-full"
@@ -339,7 +346,7 @@ export default function ShopPage() {
                         data-testid="button-checkout"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Checkout · ${(cartTotal + serviceFee).toFixed(2)}
+                        Checkout · ${orderTotal.toFixed(2)}
                       </Button>
                     </div>
                   </>
@@ -473,7 +480,7 @@ export default function ShopPage() {
           >
             <ShoppingCart className="w-5 h-5" />
             <span>View Cart ({cartCount})</span>
-            <span className="font-bold">${(cartTotal + serviceFee).toFixed(2)}</span>
+            <span className="font-bold">${orderTotal.toFixed(2)}</span>
           </Button>
         </div>
       )}
@@ -493,12 +500,16 @@ export default function ShopPage() {
                 <span className="font-medium">${cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Service fee</span>
-                <span className="font-medium">${serviceFee.toFixed(2)}</span>
+                <span>Service charge (10%)</span>
+                <span className="font-medium">${serviceCharge.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Delivery fee (15%)</span>
+                <span className="font-medium">${deliveryFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold border-t pt-2">
                 <span>Total</span>
-                <span>${(cartTotal + serviceFee).toFixed(2)}</span>
+                <span>${orderTotal.toFixed(2)}</span>
               </div>
             </div>
 
@@ -533,7 +544,7 @@ export default function ShopPage() {
               onClick={() => createOrderMutation.mutate()}
               data-testid="button-place-order"
             >
-              {createOrderMutation.isPending ? "Placing Order..." : `Place Order · $${(cartTotal + serviceFee).toFixed(2)}`}
+              {createOrderMutation.isPending ? "Placing Order..." : `Place Order · $${orderTotal.toFixed(2)}`}
             </Button>
           </div>
         </DialogContent>
