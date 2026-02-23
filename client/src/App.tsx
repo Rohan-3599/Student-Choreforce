@@ -9,6 +9,7 @@ import LandingPage from "@/pages/landing";
 import RequesterPage from "@/pages/requester";
 import TaskerPage from "@/pages/tasker";
 import ShopPage from "@/pages/shop";
+import LaundryPage from "@/pages/laundry";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/" component={RequesterPage} />
       <Route path="/tasker" component={TaskerPage} />
       <Route path="/shop" component={ShopPage} />
+      <Route path="/laundry" component={LaundryPage} />
       <Route component={NotFound} />
     </Switch>
   );
