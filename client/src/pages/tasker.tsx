@@ -70,7 +70,7 @@ export default function TaskerPage() {
     },
   });
 
-  const openTasks = allTasks?.filter((t) => t.status === "open" && t.posterId !== user?.id) ?? [];
+  const openTasks = allTasks?.filter((t) => t.status === "open") ?? [];
   const myActiveClaimed = claimedTasks?.filter((t) => t.status === "claimed") ?? [];
   const myCompletedClaimed = claimedTasks?.filter((t) => t.status === "completed") ?? [];
 
