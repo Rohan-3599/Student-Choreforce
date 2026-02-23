@@ -1,7 +1,12 @@
 import { db } from "./db";
 import { tasks } from "@shared/schema";
 import { users } from "@shared/models/auth";
-import { sql } from "drizzle-orm";
+
+const CATEGORY_PRICES: Record<string, number> = {
+  grocery_shopping: 25,
+  dorm_cleaning: 35,
+  laundry: 20,
+};
 
 export async function seedTasks() {
   try {
@@ -39,12 +44,12 @@ export async function seedTasks() {
         .onConflictDoNothing();
     }
 
-    const seedTasks = [
+    const seedTaskData = [
       {
         title: "Trader Joe's grocery run - need essentials",
         description: "Need someone to pick up milk, eggs, bread, bananas, chicken breast, and pasta from the Trader Joe's on Figueroa. I'll send a detailed list with photos. Please text me before checking out!",
         category: "grocery_shopping" as const,
-        budget: 25,
+        budget: CATEGORY_PRICES.grocery_shopping,
         location: "Parkside Arts & Humanities, Room 312",
         posterId: "seed-user-1",
       },
@@ -52,7 +57,7 @@ export async function seedTasks() {
         title: "Deep clean my dorm room before parents visit",
         description: "Parents are visiting this weekend and my dorm is a disaster. Need vacuuming, dusting, bathroom cleaning, and general tidying up. Cleaning supplies are provided. Approx 45 mins of work.",
         category: "dorm_cleaning" as const,
-        budget: 40,
+        budget: CATEGORY_PRICES.dorm_cleaning,
         location: "McCarthy Hall, Suite 405",
         posterId: "seed-user-2",
       },
@@ -60,7 +65,7 @@ export async function seedTasks() {
         title: "3 loads of laundry - wash, dry, and fold",
         description: "I have 3 loads of laundry that need to be washed, dried, and folded. All regular clothes, no special care needed. I'll provide the detergent pods. Machines are in the basement.",
         category: "laundry" as const,
-        budget: 20,
+        budget: CATEGORY_PRICES.laundry,
         location: "Webb Tower, Floor 6",
         posterId: "seed-user-3",
       },
@@ -68,7 +73,7 @@ export async function seedTasks() {
         title: "Costco run for party supplies",
         description: "Throwing a study group party. Need chips, soda, cups, napkins, and a veggie tray from Costco. I have a Costco membership card you can borrow. Will reimburse for all items plus pay the service fee.",
         category: "grocery_shopping" as const,
-        budget: 35,
+        budget: CATEGORY_PRICES.grocery_shopping,
         location: "Troy Hall, Common Room",
         posterId: "seed-user-1",
       },
@@ -76,13 +81,13 @@ export async function seedTasks() {
         title: "Quick bathroom and kitchen clean",
         description: "Just need the shared bathroom and kitchenette area cleaned. Mopping, wiping counters, cleaning the sink and toilet. Should take about 30 minutes. All supplies under the kitchen sink.",
         category: "dorm_cleaning" as const,
-        budget: 22,
+        budget: CATEGORY_PRICES.dorm_cleaning,
         location: "Fluor Tower, Room 718",
         posterId: "seed-user-3",
       },
     ];
 
-    await db.insert(tasks).values(seedTasks);
+    await db.insert(tasks).values(seedTaskData);
     console.log("Seeded 5 tasks successfully");
   } catch (error) {
     console.error("Error seeding tasks:", error);

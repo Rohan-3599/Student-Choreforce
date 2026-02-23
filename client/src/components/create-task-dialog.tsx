@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus } from "lucide-react";
+import { Plus, DollarSign } from "lucide-react";
 import { CATEGORY_CONFIG } from "@/lib/constants";
 import { useState } from "react";
 
@@ -24,13 +24,23 @@ export function CreateTaskDialog({ onSubmit, isPending }: CreateTaskDialogProps)
       title: "",
       description: "",
       category: "grocery_shopping",
-      budget: 15,
+      budget: CATEGORY_CONFIG.grocery_shopping.price,
       location: "",
     },
   });
 
+  const selectedCategory = form.watch("category") as TaskCategory;
+  const currentPrice = CATEGORY_CONFIG[selectedCategory]?.price ?? 25;
+
+  function handleCategoryChange(value: string, onChange: (value: string) => void) {
+    onChange(value);
+    const cat = value as TaskCategory;
+    form.setValue("budget", CATEGORY_CONFIG[cat].price);
+  }
+
   function handleSubmit(data: InsertTask) {
-    onSubmit(data);
+    const finalData = { ...data, budget: CATEGORY_CONFIG[data.category as TaskCategory].price };
+    onSubmit(finalData);
     form.reset();
     setOpen(false);
   }
@@ -55,7 +65,7 @@ export function CreateTaskDialog({ onSubmit, isPending }: CreateTaskDialogProps)
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(val) => handleCategoryChange(val, field.onChange)} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-category">
                         <SelectValue placeholder="Select a category" />
@@ -81,6 +91,12 @@ export function CreateTaskDialog({ onSubmit, isPending }: CreateTaskDialogProps)
                 </FormItem>
               )}
             />
+
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Set price:</span>
+              <span className="font-bold text-lg" data-testid="text-set-price">${currentPrice}</span>
+            </div>
 
             <FormField
               control={form.control}
@@ -124,27 +140,6 @@ export function CreateTaskDialog({ onSubmit, isPending }: CreateTaskDialogProps)
                   <FormLabel>Location</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., McCarthy Hall, Room 215" {...field} data-testid="input-location" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="budget"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Budget ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="15"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      data-testid="input-budget"
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
