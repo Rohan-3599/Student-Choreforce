@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import RequesterPage from "@/pages/requester";
 import TaskerPage from "@/pages/tasker";
+import ShopPage from "@/pages/shop";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -33,6 +34,7 @@ function Router() {
     <Switch>
       <Route path="/" component={RequesterPage} />
       <Route path="/tasker" component={TaskerPage} />
+      <Route path="/shop" component={ShopPage} />
       <Route component={NotFound} />
     </Switch>
   );

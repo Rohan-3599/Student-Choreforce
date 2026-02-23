@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, HardHat } from "lucide-react";
+import { Zap, LogOut, ClipboardList, HardHat, ShoppingCart } from "lucide-react";
 import type { Task, InsertTask } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
@@ -97,6 +97,12 @@ export default function RequesterPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <Link href="/shop">
+              <Button variant="outline" size="sm" data-testid="button-shop-groceries">
+                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                Shop Groceries
+              </Button>
+            </Link>
             <Link href="/tasker">
               <Button variant="outline" size="sm" data-testid="button-switch-tasker">
                 <HardHat className="w-3.5 h-3.5 mr-1.5" />
