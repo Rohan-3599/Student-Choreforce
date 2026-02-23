@@ -38,6 +38,7 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - `/` (logged in) - Requester page: post tasks, manage Open/Active/Past tabs
 - `/tasker` - Tasker page: browse open tasks, view My Jobs/Completed tabs
 - `/shop` - Grocery shop: pick store, browse items, add to cart, checkout
+- `/laundry` - Laundry service: configure loads, wash/dry options, washer/dryer settings
 
 ## API Routes
 - `GET /api/tasks?category=` - List tasks (optional category filter)
