@@ -4,6 +4,7 @@
 TaskForce is a web application for USC students to post and claim chore tasks. Students can pay fellow Trojans to help with grocery shopping, dorm cleaning, and laundry. Fixed pricing per category.
 
 ## Recent Changes
+- 2026-02-23: Added grocery item selection from Trader Joe's and Target at USC Village with real prices
 - 2026-02-23: Added fixed prices per category, split into Requester and Tasker pages
 - 2026-02-23: Initial MVP build with auth, task CRUD, seed data, USC-themed design
 
