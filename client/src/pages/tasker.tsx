@@ -176,7 +176,9 @@ export default function TaskerPage() {
                     key={task.id}
                     task={task}
                     currentUserId={user?.id}
+                    onComplete={(id) => completeMutation.mutate(id)}
                     onViewDetail={(id) => setSelectedTaskId(id)}
+                    isCompletePending={completeMutation.isPending}
                   />
                 ))}
               </div>

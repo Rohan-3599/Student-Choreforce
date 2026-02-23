@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, DollarSign } from "lucide-react";
+import { MapPin, Clock, DollarSign, CheckCircle } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import type { Task } from "@shared/schema";
 import type { User } from "@shared/models/auth";
@@ -12,16 +12,20 @@ interface TaskCardProps {
   task: Task & { poster?: User | null };
   currentUserId?: string;
   onClaim?: (taskId: string) => void;
+  onComplete?: (taskId: string) => void;
   onViewDetail?: (taskId: string) => void;
   isClaimPending?: boolean;
+  isCompletePending?: boolean;
 }
 
-export function TaskCard({ task, currentUserId, onClaim, onViewDetail, isClaimPending }: TaskCardProps) {
+export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetail, isClaimPending, isCompletePending }: TaskCardProps) {
   const category = CATEGORY_CONFIG[task.category];
   const status = STATUS_CONFIG[task.status];
   const CategoryIcon = category.icon;
   const isOwner = currentUserId === task.posterId;
+  const isClaimer = currentUserId === task.claimerId;
   const canClaim = task.status === "open" && !isOwner && currentUserId;
+  const canComplete = task.status === "claimed" && (isOwner || isClaimer);
 
   return (
     <Card className="hover-elevate group" data-testid={`card-task-${task.id}`}>
@@ -92,10 +96,22 @@ export function TaskCard({ task, currentUserId, onClaim, onViewDetail, isClaimPe
               {isClaimPending ? "Claiming..." : "Claim Task"}
             </Button>
           )}
+          {canComplete && onComplete && (
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => onComplete(task.id)}
+              disabled={isCompletePending}
+              data-testid={`button-complete-${task.id}`}
+            >
+              <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+              {isCompletePending ? "Completing..." : "Mark Complete"}
+            </Button>
+          )}
           {onViewDetail && (
             <Button
               size="sm"
-              variant={canClaim ? "outline" : "default"}
+              variant={(canClaim || canComplete) ? "outline" : "default"}
               className="w-full"
               onClick={() => onViewDetail(task.id)}
               data-testid={`button-view-${task.id}`}
