@@ -6,8 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
-import HomePage from "@/pages/home";
-import MyTasksPage from "@/pages/my-tasks";
+import RequesterPage from "@/pages/requester";
+import TaskerPage from "@/pages/tasker";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -31,8 +31,8 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/my-tasks" component={MyTasksPage} />
+      <Route path="/" component={RequesterPage} />
+      <Route path="/tasker" component={TaskerPage} />
       <Route component={NotFound} />
     </Switch>
   );

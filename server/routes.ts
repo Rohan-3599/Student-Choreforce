@@ -5,6 +5,12 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { insertTaskSchema } from "@shared/schema";
 import { seedTasks } from "./seed";
 
+const CATEGORY_PRICES: Record<string, number> = {
+  grocery_shopping: 25,
+  dorm_cleaning: 35,
+  laundry: 20,
+};
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -63,7 +69,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid task data", errors: parsed.error.flatten() });
       }
       const userId = req.user.claims.sub;
-      const task = await storage.createTask({ ...parsed.data, posterId: userId });
+      const categoryPrice = CATEGORY_PRICES[parsed.data.category];
+      const task = await storage.createTask({ ...parsed.data, budget: categoryPrice ?? parsed.data.budget, posterId: userId });
       res.status(201).json(task);
     } catch (error) {
       console.error("Error creating task:", error);
