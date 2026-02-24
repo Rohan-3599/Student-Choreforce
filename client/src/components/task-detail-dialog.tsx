@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MapPin, Clock, DollarSign, User, ShoppingCart } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import { STORE_LABELS } from "@/lib/grocery-catalog";
+import { TaskChat } from "@/components/task-chat";
 import type { Task, GroceryItemSelection } from "@shared/schema";
 import type { User as AuthUser } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
@@ -52,7 +53,7 @@ export function TaskDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={hasGroceryItems ? "sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col" : "sm:max-w-lg"}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-md ${category.bgColor} flex items-center justify-center shrink-0`}>
@@ -168,6 +169,14 @@ export function TaskDetailDialog({
               </div>
             )}
           </div>
+
+          {currentUserId && task.claimerId && (isOwner || isClaimer) && (
+            <TaskChat
+              taskId={task.id}
+              currentUserId={currentUserId}
+              taskStatus={task.status}
+            />
+          )}
 
           <div className="flex items-center gap-2 pt-2 flex-wrap">
             {canClaim && onClaim && (

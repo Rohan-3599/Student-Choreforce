@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
-import { insertTaskSchema } from "@shared/schema";
+import { insertTaskSchema, insertMessageSchema } from "@shared/schema";
 import { seedTasks } from "./seed";
 
 const CATEGORY_PRICES: Record<string, number | undefined> = {
@@ -112,6 +112,45 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error cancelling task:", error);
       res.status(500).json({ message: "Failed to cancel task" });
+    }
+  });
+
+  app.get("/api/tasks/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.getTask(req.params.id);
+      if (!task) return res.status(404).json({ message: "Task not found" });
+      if (task.posterId !== userId && task.claimerId !== userId) {
+        return res.status(403).json({ message: "Not authorized to view messages" });
+      }
+      const msgs = await storage.getMessages(req.params.id);
+      res.json(msgs);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/tasks/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.getTask(req.params.id);
+      if (!task) return res.status(404).json({ message: "Task not found" });
+      if (task.posterId !== userId && task.claimerId !== userId) {
+        return res.status(403).json({ message: "Not authorized to send messages" });
+      }
+      if (task.status === "open" || task.status === "cancelled") {
+        return res.status(400).json({ message: "Messages only available for claimed/active tasks" });
+      }
+      const parsed = insertMessageSchema.safeParse({ ...req.body, taskId: req.params.id });
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid message", errors: parsed.error.flatten() });
+      }
+      const message = await storage.createMessage({ ...parsed.data, senderId: userId });
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
     }
   });
 
