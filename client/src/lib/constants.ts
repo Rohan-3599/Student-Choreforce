@@ -1,4 +1,4 @@
-import { ShoppingCart, SprayCan, WashingMachine } from "lucide-react";
+import { ShoppingCart, SprayCan, WashingMachine, ClipboardList } from "lucide-react";
 import type { TaskCategory, TaskStatus } from "@shared/schema";
 
 export const CATEGORY_CONFIG: Record<TaskCategory, {
@@ -28,6 +28,13 @@ export const CATEGORY_CONFIG: Record<TaskCategory, {
     color: "text-violet-600 dark:text-violet-400",
     bgColor: "bg-violet-50 dark:bg-violet-950/30",
     price: 20,
+  },
+  other: {
+    label: "Custom Task",
+    icon: ClipboardList,
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-50 dark:bg-amber-950/30",
+    price: 0,
   },
 };
 

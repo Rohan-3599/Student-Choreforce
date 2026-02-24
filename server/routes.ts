@@ -9,6 +9,7 @@ const CATEGORY_PRICES: Record<string, number | undefined> = {
   grocery_shopping: undefined,
   dorm_cleaning: undefined,
   laundry: undefined,
+  other: undefined,
 };
 
 export async function registerRoutes(
