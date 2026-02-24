@@ -1,7 +1,7 @@
-import { tasks, type Task, type InsertTask } from "@shared/schema";
+import { tasks, type Task, type InsertTask, messages, type Message, type InsertMessage } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, asc } from "drizzle-orm";
 
 export interface IStorage {
   getTasks(category?: string): Promise<(Task & { poster?: User | null })[]>;
@@ -12,6 +12,8 @@ export interface IStorage {
   cancelTask(taskId: string, userId: string): Promise<Task | undefined>;
   getTasksByPoster(posterId: string): Promise<(Task & { poster?: User | null })[]>;
   getTasksByClaimer(claimerId: string): Promise<(Task & { poster?: User | null })[]>;
+  getMessages(taskId: string): Promise<(Message & { sender?: User | null })[]>;
+  createMessage(message: InsertMessage & { senderId: string }): Promise<Message & { sender?: User | null }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -100,6 +102,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tasks.claimerId, claimerId))
       .orderBy(desc(tasks.createdAt));
     return this.attachPosters(taskRows);
+  }
+
+  async getMessages(taskId: string): Promise<(Message & { sender?: User | null })[]> {
+    const messageRows = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.taskId, taskId))
+      .orderBy(asc(messages.createdAt));
+
+    const senderIds = [...new Set(messageRows.map((m) => m.senderId).filter(Boolean))];
+    const senderMap = new Map<string, User>();
+    for (const id of senderIds) {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      if (user) senderMap.set(id, user);
+    }
+
+    return messageRows.map((msg) => ({
+      ...msg,
+      sender: senderMap.get(msg.senderId) ?? null,
+    }));
+  }
+
+  async createMessage(message: InsertMessage & { senderId: string }): Promise<Message & { sender?: User | null }> {
+    const [created] = await db.insert(messages).values(message).returning();
+    const [sender] = await db.select().from(users).where(eq(users.id, message.senderId));
+    return { ...created, sender: sender ?? null };
   }
 
   private async attachPosters(taskRows: Task[]): Promise<(Task & { poster?: User | null })[]> {

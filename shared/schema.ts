@@ -56,6 +56,31 @@ export const usersRelations = relations(users, ({ many }) => ({
   claimedTasks: many(tasks, { relationName: "claimedTasks" }),
 }));
 
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull().references(() => tasks.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  task: one(tasks, { fields: [messages.taskId], references: [tasks.id] }),
+  sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+}));
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  senderId: true,
+  createdAt: true,
+}).extend({
+  content: z.string().min(1, "Message cannot be empty").max(1000),
+  taskId: z.string().min(1),
+});
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+
 export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
   status: true,

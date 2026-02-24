@@ -15,7 +15,8 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - **Auth**: Replit Auth (OpenID Connect) via `server/replit_integrations/auth/`
 
 ## Key Files
-- `shared/schema.ts` - Data models (tasks, users, enums, groceryItemSchema)
+- `shared/schema.ts` - Data models (tasks, users, messages, enums, groceryItemSchema)
+- `client/src/components/task-chat.tsx` - In-app messaging component
 - `shared/models/auth.ts` - Auth-related models (users, sessions)
 - `server/routes.ts` - API endpoints (enforces fixed pricing on create)
 - `server/storage.ts` - Database operations (DatabaseStorage)
@@ -42,6 +43,13 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - `/cleaning` - Dorm cleaning: Basic Organizing ($20) or Deep Room Clean ($45) + $15/hr after first hour
 - `/custom` - Custom tasks: user-defined title, description, price ($5-$500), and location
 
+## In-App Messaging
+- Chat available between requester and tasker once a task is claimed
+- Messages table stores all messages with sender info
+- Chat component embedded in task detail dialog
+- Auto-refreshes every 5 seconds for near-real-time updates
+- Only accessible to the poster and claimer of a task
+
 ## API Routes
 - `GET /api/tasks?category=` - List tasks (optional category filter)
 - `GET /api/tasks/:id` - Get single task with poster/claimer info
@@ -51,6 +59,8 @@ TaskForce is a web application for USC students to post and claim chore tasks. S
 - `POST /api/tasks/:id/cancel` - Cancel a task (auth required)
 - `GET /api/tasks/my/posted` - User's posted tasks (auth required)
 - `GET /api/tasks/my/claimed` - User's claimed tasks (auth required)
+- `GET /api/tasks/:id/messages` - Get messages for a task (auth required, poster or claimer only)
+- `POST /api/tasks/:id/messages` - Send message on a task (auth required, poster or claimer only)
 
 ## Task Categories
 - grocery_shopping, dorm_cleaning, laundry, other

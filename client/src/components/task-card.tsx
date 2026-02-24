@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, DollarSign, CheckCircle, ShoppingCart } from "lucide-react";
+import { MapPin, Clock, DollarSign, CheckCircle, ShoppingCart, MessageCircle } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import type { Task, GroceryItemSelection } from "@shared/schema";
 import type { User } from "@shared/models/auth";
@@ -60,6 +60,13 @@ export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetai
             </div>
           )}
         </div>
+
+        {task.claimerId && (task.status === "claimed" || task.status === "in_progress") && (
+          <div className="flex items-center gap-1.5 text-xs text-primary" data-testid={`text-chat-available-${task.id}`}>
+            <MessageCircle className="w-3 h-3" />
+            <span>Chat available — tap View Details</span>
+          </div>
+        )}
 
         {task.category === "grocery_shopping" && (task.groceryItems as GroceryItemSelection[] | null)?.length ? (
           <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
