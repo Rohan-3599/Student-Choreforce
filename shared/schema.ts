@@ -10,6 +10,7 @@ export const taskCategoryEnum = pgEnum("task_category", [
   "grocery_shopping",
   "dorm_cleaning",
   "laundry",
+  "other",
 ]);
 
 export const taskStatusEnum = pgEnum("task_status", [
@@ -72,5 +73,5 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
-export type TaskCategory = "grocery_shopping" | "dorm_cleaning" | "laundry";
+export type TaskCategory = "grocery_shopping" | "dorm_cleaning" | "laundry" | "other";
 export type TaskStatus = "open" | "claimed" | "in_progress" | "completed" | "cancelled";

@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, HardHat, ShoppingCart, WashingMachine, SprayCan } from "lucide-react";
+import { Zap, LogOut, ClipboardList, HardHat, ShoppingCart, WashingMachine, SprayCan, PenLine } from "lucide-react";
 import type { Task, InsertTask } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
@@ -113,6 +113,12 @@ export default function RequesterPage() {
               <Button variant="outline" size="sm" data-testid="button-cleaning">
                 <SprayCan className="w-3.5 h-3.5 mr-1.5" />
                 Cleaning
+              </Button>
+            </Link>
+            <Link href="/custom">
+              <Button variant="outline" size="sm" data-testid="button-custom-task">
+                <PenLine className="w-3.5 h-3.5 mr-1.5" />
+                Custom Task
               </Button>
             </Link>
             <Link href="/tasker">
