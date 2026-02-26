@@ -14,6 +14,7 @@ export interface IStorage {
   getTasksByClaimer(claimerId: string): Promise<(Task & { poster?: User | null })[]>;
   getMessages(taskId: string): Promise<(Message & { sender?: User | null })[]>;
   createMessage(message: InsertMessage & { senderId: string }): Promise<Message & { sender?: User | null }>;
+  updatePaymentStatus(taskId: string, paymentStatus: string, paypalOrderId?: string): Promise<Task | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -128,6 +129,17 @@ export class DatabaseStorage implements IStorage {
     const [created] = await db.insert(messages).values(message).returning();
     const [sender] = await db.select().from(users).where(eq(users.id, message.senderId));
     return { ...created, sender: sender ?? null };
+  }
+
+  async updatePaymentStatus(taskId: string, paymentStatus: string, paypalOrderId?: string): Promise<Task | undefined> {
+    const updateData: any = { paymentStatus };
+    if (paypalOrderId) updateData.paypalOrderId = paypalOrderId;
+    const [updated] = await db
+      .update(tasks)
+      .set(updateData)
+      .where(eq(tasks.id, taskId))
+      .returning();
+    return updated;
   }
 
   private async attachPosters(taskRows: Task[]): Promise<(Task & { poster?: User | null })[]> {

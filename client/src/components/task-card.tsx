@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Clock, DollarSign, CheckCircle, ShoppingCart, MessageCircle } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
-import type { Task, GroceryItemSelection } from "@shared/schema";
+import { PaymentMethodBadge } from "@/components/payment-method-selector";
+import type { Task, GroceryItemSelection, PaymentMethod } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
 
@@ -91,6 +92,9 @@ export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetai
             <span className="text-xs text-muted-foreground">
               {task.poster?.firstName ?? "Anonymous"}
             </span>
+            {task.paymentMethod && (
+              <PaymentMethodBadge method={task.paymentMethod as PaymentMethod} />
+            )}
           </div>
 
           <div className="flex items-center gap-2">

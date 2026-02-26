@@ -3,11 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Clock, DollarSign, User, ShoppingCart } from "lucide-react";
+import { MapPin, Clock, DollarSign, User, ShoppingCart, CreditCard } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import { STORE_LABELS } from "@/lib/grocery-catalog";
 import { TaskChat } from "@/components/task-chat";
-import type { Task, GroceryItemSelection } from "@shared/schema";
+import { PaymentMethodBadge } from "@/components/payment-method-selector";
+import type { Task, GroceryItemSelection, PaymentMethod } from "@shared/schema";
 import type { User as AuthUser } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
 
@@ -92,6 +93,20 @@ export function TaskDetailDialog({
               <p className="text-sm font-medium" data-testid="text-detail-location">{task.location}</p>
             </div>
           </div>
+
+          {task.paymentMethod && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40" data-testid="section-payment-method">
+              <CreditCard className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Payment:</span>
+              <PaymentMethodBadge method={task.paymentMethod as PaymentMethod} />
+              {task.paymentStatus === "paid" && (
+                <Badge variant="default" className="bg-emerald-600 ml-auto" data-testid="badge-payment-paid">Paid</Badge>
+              )}
+              {task.paymentStatus === "pending" && task.status !== "open" && (
+                <Badge variant="outline" className="ml-auto text-amber-600 border-amber-300" data-testid="badge-payment-pending">Payment Pending</Badge>
+              )}
+            </div>
+          )}
 
           {hasGroceryItems && (
             <div className="border rounded-md p-3 space-y-2" data-testid="section-grocery-items">

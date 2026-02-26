@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign } from "lucide-react";
+import { ShoppingCart, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign, CreditCard } from "lucide-react";
+import { SiPaypal, SiVenmo, SiCashapp } from "react-icons/si";
 
 export default function LandingPage() {
   return (
@@ -193,10 +194,34 @@ export default function LandingPage() {
               description="Most tasks are completed within hours. Post now, relax later."
             />
             <FeatureCard
-              icon={DollarSign}
-              title="Fair Prices"
-              description="Fixed pricing means no haggling. Know exactly what you'll pay or earn."
+              icon={CreditCard}
+              title="Flexible Payments"
+              description="Pay with PayPal, Venmo, Zelle, or Cash App. Choose what works for you."
             />
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 px-6 bg-muted/30">
+        <div className="max-w-6xl mx-auto text-center space-y-6">
+          <h3 className="text-lg font-semibold text-muted-foreground">Accepted Payment Methods</h3>
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            <div className="flex items-center gap-2 text-[#003087]" data-testid="logo-paypal">
+              <SiPaypal className="w-6 h-6" />
+              <span className="font-semibold">PayPal</span>
+            </div>
+            <div className="flex items-center gap-2 text-[#3D95CE]" data-testid="logo-venmo">
+              <SiVenmo className="w-6 h-6" />
+              <span className="font-semibold">Venmo</span>
+            </div>
+            <div className="flex items-center gap-2 text-[#6C1CD3]" data-testid="logo-zelle">
+              <CreditCard className="w-6 h-6" />
+              <span className="font-semibold">Zelle</span>
+            </div>
+            <div className="flex items-center gap-2 text-[#00D632]" data-testid="logo-cashapp">
+              <SiCashapp className="w-6 h-6" />
+              <span className="font-semibold">Cash App</span>
+            </div>
           </div>
         </div>
       </section>

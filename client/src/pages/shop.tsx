@@ -21,8 +21,9 @@ import {
   GROCERY_CATALOG, STORE_INFO, GROCERY_CATEGORY_CONFIG, STORE_LABELS,
   type GroceryItem,
 } from "@/lib/grocery-catalog";
-import type { GroceryItemSelection } from "@shared/schema";
+import type { GroceryItemSelection, PaymentMethod } from "@shared/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import PaymentMethodSelector, { getPaymentMethodLabel } from "@/components/payment-method-selector";
 
 type CartItem = GroceryItemSelection;
 
@@ -37,6 +38,7 @@ export default function ShopPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const storeItems = useMemo(() => {
     if (!selectedStore) return [];
@@ -123,6 +125,7 @@ export default function ShopPage() {
         budget: Math.round(orderTotal * 100) / 100,
         location: deliveryLocation,
         groceryItems: cartItems,
+        paymentMethod: paymentMethod,
       });
       return res.json();
     },
@@ -537,10 +540,12 @@ export default function ShopPage() {
               />
             </div>
 
+            <PaymentMethodSelector selected={paymentMethod} onSelect={setPaymentMethod} />
+
             <Button
               className="w-full"
               size="lg"
-              disabled={!deliveryLocation.trim() || createOrderMutation.isPending}
+              disabled={!deliveryLocation.trim() || !paymentMethod || createOrderMutation.isPending}
               onClick={() => createOrderMutation.mutate()}
               data-testid="button-place-order"
             >
