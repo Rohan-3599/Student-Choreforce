@@ -21,6 +21,19 @@ export const taskStatusEnum = pgEnum("task_status", [
   "cancelled",
 ]);
 
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "paypal",
+  "venmo",
+  "zelle",
+  "cashapp",
+]);
+
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "paid",
+  "failed",
+]);
+
 export const groceryItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -42,6 +55,9 @@ export const tasks = pgTable("tasks", {
   posterId: varchar("poster_id").notNull().references(() => users.id),
   claimerId: varchar("claimer_id").references(() => users.id),
   groceryItems: jsonb("grocery_items"),
+  paymentMethod: paymentMethodEnum("payment_method"),
+  paymentStatus: paymentStatusEnum("payment_status").default("pending"),
+  paypalOrderId: text("paypal_order_id"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
@@ -94,9 +110,12 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   description: z.string().min(10, "Description must be at least 10 characters"),
   location: z.string().min(2, "Location is required"),
   groceryItems: z.array(groceryItemSchema).optional(),
+  paymentMethod: z.enum(["paypal", "venmo", "zelle", "cashapp"]).optional(),
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type TaskCategory = "grocery_shopping" | "dorm_cleaning" | "laundry" | "other";
 export type TaskStatus = "open" | "claimed" | "in_progress" | "completed" | "cancelled";
+export type PaymentMethod = "paypal" | "venmo" | "zelle" | "cashapp";
+export type PaymentStatus = "pending" | "paid" | "failed";

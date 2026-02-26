@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { insertTaskSchema, insertMessageSchema } from "@shared/schema";
 import { seedTasks } from "./seed";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault, isPaypalConfigured } from "./paypal-loader";
 
 const CATEGORY_PRICES: Record<string, number | undefined> = {
   grocery_shopping: undefined,
@@ -152,6 +153,53 @@ export async function registerRoutes(
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Failed to send message" });
     }
+  });
+
+  app.get("/api/payment/config", (_req, res) => {
+    res.json({ paypalAvailable: isPaypalConfigured() });
+  });
+
+  app.get("/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/paypal/order", async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+
+  app.post("/api/tasks/:id/payment", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.getTask(req.params.id);
+      if (!task) return res.status(404).json({ message: "Task not found" });
+      if (task.posterId !== userId) return res.status(403).json({ message: "Only the poster can update payment" });
+      const { paymentStatus, paypalOrderId } = req.body;
+      const validStatuses = ["pending", "paid", "failed"];
+      if (!paymentStatus || !validStatuses.includes(paymentStatus)) {
+        return res.status(400).json({ message: "Invalid payment status. Must be: pending, paid, or failed" });
+      }
+      const updated = await storage.updatePaymentStatus(req.params.id, paymentStatus, paypalOrderId);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      res.status(500).json({ message: "Failed to update payment" });
+    }
+  });
+
+  app.get("/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/order", async (req, res) => {
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
   });
 
   await seedTasks();

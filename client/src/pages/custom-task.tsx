@@ -15,6 +15,8 @@ import {
   CheckCircle, DollarSign, MapPin, FileText, Pencil,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import type { PaymentMethod } from "@shared/schema";
+import PaymentMethodSelector from "@/components/payment-method-selector";
 
 const MIN_PRICE = 5;
 const MAX_PRICE = 500;
@@ -29,6 +31,7 @@ export default function CustomTaskPage() {
   const [price, setPrice] = useState(15);
   const [location, setLocation] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const isFormValid = title.trim().length >= 3 && description.trim().length >= 10 && location.trim().length >= 2 && price >= MIN_PRICE;
 
@@ -40,6 +43,7 @@ export default function CustomTaskPage() {
         category: "other",
         budget: price,
         location: location.trim(),
+        paymentMethod: paymentMethod,
       });
       return res.json();
     },
@@ -239,10 +243,12 @@ export default function CustomTaskPage() {
               </div>
             </div>
 
+            <PaymentMethodSelector selected={paymentMethod} onSelect={setPaymentMethod} />
+
             <Button
               className="w-full"
               size="lg"
-              disabled={createOrderMutation.isPending}
+              disabled={!paymentMethod || createOrderMutation.isPending}
               onClick={() => createOrderMutation.mutate()}
               data-testid="button-place-order"
             >

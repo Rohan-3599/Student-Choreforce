@@ -16,6 +16,8 @@ import {
   CheckCircle, Sparkles, LayoutList, Clock, Info,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import type { PaymentMethod } from "@shared/schema";
+import PaymentMethodSelector from "@/components/payment-method-selector";
 
 type CleaningTier = "basic" | "deep";
 
@@ -65,6 +67,7 @@ export default function CleaningPage() {
   const [dormLocation, setDormLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const tierInfo = TIER_CONFIG[tier];
   const extraHours = Math.max(0, estimatedHours - 1);
@@ -79,6 +82,7 @@ export default function CleaningPage() {
         category: "dorm_cleaning",
         budget: totalPrice,
         location: dormLocation,
+        paymentMethod: paymentMethod,
       });
       return res.json();
     },
@@ -313,10 +317,12 @@ export default function CleaningPage() {
               />
             </div>
 
+            <PaymentMethodSelector selected={paymentMethod} onSelect={setPaymentMethod} />
+
             <Button
               className="w-full"
               size="lg"
-              disabled={!dormLocation.trim() || createOrderMutation.isPending}
+              disabled={!dormLocation.trim() || !paymentMethod || createOrderMutation.isPending}
               onClick={() => createOrderMutation.mutate()}
               data-testid="button-place-order"
             >

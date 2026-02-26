@@ -18,6 +18,8 @@ import {
   CheckCircle, Droplets, Wind, Thermometer, RotateCw, Shirt,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import type { PaymentMethod } from "@shared/schema";
+import PaymentMethodSelector from "@/components/payment-method-selector";
 
 type ServiceType = "wash" | "dry" | "both";
 
@@ -56,6 +58,7 @@ export default function LaundryPage() {
   const [pickupLocation, setPickupLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const basePrice = loads * PRICE_PER_LOAD;
   const foldingPrice = includeFolding ? loads * FOLDING_FEE_PER_LOAD : 0;
@@ -76,6 +79,7 @@ export default function LaundryPage() {
         category: "laundry",
         budget: totalPrice,
         location: pickupLocation,
+        paymentMethod: paymentMethod,
       });
       return res.json();
     },
@@ -399,10 +403,12 @@ export default function LaundryPage() {
               />
             </div>
 
+            <PaymentMethodSelector selected={paymentMethod} onSelect={setPaymentMethod} />
+
             <Button
               className="w-full"
               size="lg"
-              disabled={!pickupLocation.trim() || createOrderMutation.isPending}
+              disabled={!pickupLocation.trim() || !paymentMethod || createOrderMutation.isPending}
               onClick={() => createOrderMutation.mutate()}
               data-testid="button-place-order"
             >
