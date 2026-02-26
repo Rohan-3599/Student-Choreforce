@@ -1,12 +1,11 @@
 import type { PaymentMethod } from "@shared/schema";
-import { SiPaypal, SiVenmo, SiCashapp } from "react-icons/si";
-import { Building2 } from "lucide-react";
+import { CreditCard, Building2, DollarSign, Wallet } from "lucide-react";
 
 const PAYMENT_METHODS: {
   id: PaymentMethod;
   label: string;
   description: string;
-  icon: typeof SiPaypal | typeof Building2;
+  icon: typeof CreditCard;
   color: string;
   bgColor: string;
 }[] = [
@@ -14,7 +13,7 @@ const PAYMENT_METHODS: {
     id: "paypal",
     label: "PayPal",
     description: "Pay securely with PayPal",
-    icon: SiPaypal,
+    icon: CreditCard,
     color: "text-[#003087]",
     bgColor: "bg-[#003087]/5 border-[#003087]",
   },
@@ -22,7 +21,7 @@ const PAYMENT_METHODS: {
     id: "venmo",
     label: "Venmo",
     description: "Send via Venmo @username",
-    icon: SiVenmo,
+    icon: Wallet,
     color: "text-[#3D95CE]",
     bgColor: "bg-[#3D95CE]/5 border-[#3D95CE]",
   },
@@ -38,7 +37,7 @@ const PAYMENT_METHODS: {
     id: "cashapp",
     label: "Cash App",
     description: "Pay with $cashtag",
-    icon: SiCashapp,
+    icon: DollarSign,
     color: "text-[#00D632]",
     bgColor: "bg-[#00D632]/5 border-[#00D632]",
   },

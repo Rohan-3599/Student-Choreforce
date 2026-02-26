@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign, CreditCard } from "lucide-react";
-import { SiPaypal, SiVenmo, SiCashapp } from "react-icons/si";
+import { ShoppingCart, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign, CreditCard, Wallet, Building2 } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -207,19 +206,19 @@ export default function LandingPage() {
           <h3 className="text-lg font-semibold text-muted-foreground">Accepted Payment Methods</h3>
           <div className="flex items-center justify-center gap-8 flex-wrap">
             <div className="flex items-center gap-2 text-[#003087]" data-testid="logo-paypal">
-              <SiPaypal className="w-6 h-6" />
+              <CreditCard className="w-6 h-6" />
               <span className="font-semibold">PayPal</span>
             </div>
             <div className="flex items-center gap-2 text-[#3D95CE]" data-testid="logo-venmo">
-              <SiVenmo className="w-6 h-6" />
+              <Wallet className="w-6 h-6" />
               <span className="font-semibold">Venmo</span>
             </div>
             <div className="flex items-center gap-2 text-[#6C1CD3]" data-testid="logo-zelle">
-              <CreditCard className="w-6 h-6" />
+              <Building2 className="w-6 h-6" />
               <span className="font-semibold">Zelle</span>
             </div>
             <div className="flex items-center gap-2 text-[#00D632]" data-testid="logo-cashapp">
-              <SiCashapp className="w-6 h-6" />
+              <DollarSign className="w-6 h-6" />
               <span className="font-semibold">Cash App</span>
             </div>
           </div>
