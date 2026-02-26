@@ -123,7 +123,7 @@ export async function capturePaypalOrder(req: Request, res: Response) {
   try {
     const { orderID } = req.params;
     const collect = {
-      id: orderID,
+      id: orderID as string,
       prefer: "return=minimal",
     };
 
