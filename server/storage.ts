@@ -112,7 +112,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messages.taskId, taskId))
       .orderBy(asc(messages.createdAt));
 
-    const senderIds = [...new Set(messageRows.map((m) => m.senderId).filter(Boolean))];
+    const senderIds = Array.from(new Set(messageRows.map((m) => m.senderId).filter(Boolean)));
     const senderMap = new Map<string, User>();
     for (const id of senderIds) {
       const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -143,7 +143,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async attachPosters(taskRows: Task[]): Promise<(Task & { poster?: User | null })[]> {
-    const posterIds = [...new Set(taskRows.map((t) => t.posterId).filter(Boolean))];
+    const posterIds = Array.from(new Set(taskRows.map((t) => t.posterId).filter(Boolean)));
     const posterMap = new Map<string, User>();
 
     if (posterIds.length > 0) {
