@@ -4,12 +4,21 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { users } from "@shared/schema";
 import Stripe from "stripe";
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" as any });
+
+function getStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
+  return new Stripe(key, { apiVersion: "2025-01-27.acacia" as any });
+}
 
 const router = express.Router();
 
 router.post("/register", async (req: any, res: any) => {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(503).json({ error: "Stripe is not configured" });
+    }
+    const stripe = getStripe();
     const { userId } = req.body;
     const u = (await db.select().from(users).where(eq(users.id, userId)))[0];
     if (!u) return res.status(404).json({ error: "User not found" });

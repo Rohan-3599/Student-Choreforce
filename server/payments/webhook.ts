@@ -6,12 +6,21 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { transactions, users, tasks } from "@shared/schema";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" as any });
+function getStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
+  return new Stripe(key, { apiVersion: "2025-01-27.acacia" as any });
+}
+
 const router = express.Router();
 
 router.post("/", bodyParser.raw({ type: "application/json" }), async (req: any, res: any) => {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret || !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: "Stripe not configured" });
+  }
+  const stripe = getStripe();
   const sig = req.headers["stripe-signature"] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);

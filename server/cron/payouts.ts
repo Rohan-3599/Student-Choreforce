@@ -5,9 +5,18 @@ import { db } from "../db";
 import { eq, gt, isNotNull, and } from "drizzle-orm";
 import { users, payouts } from "@shared/schema";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" as any });
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key, { apiVersion: "2025-01-27.acacia" as any });
+}
 
 cron.schedule("0 2 * * 1", async () => {
+  const stripe = getStripe();
+  if (!stripe) {
+    console.log("Skipping weekly payouts: STRIPE_SECRET_KEY not configured.");
+    return;
+  }
   console.log("Running weekly payouts job...");
   const taskers = await db.select().from(users).where(and(gt(users.wallet_balance_cents, 0), isNotNull(users.stripe_account_id)));
   for (const t of taskers) {
