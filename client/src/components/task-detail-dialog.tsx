@@ -83,7 +83,7 @@ export function TaskDetailDialog({
                 <DollarSign className="w-3.5 h-3.5" />
                 Service Fee
               </div>
-              <p className="font-bold text-lg" data-testid="text-detail-budget">${task.budget}</p>
+              <p className="font-bold text-lg" data-testid="text-detail-budget">${(task.budget / 100).toFixed(2)}</p>
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

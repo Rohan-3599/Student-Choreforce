@@ -1,3 +1,5 @@
+import SignupForm from './components/Auth/SignupForm';
+import PaymentMethodsManager from './components/PaymentMethodsManager';
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -35,12 +37,14 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/signup" component={SignupForm} />
       <Route path="/" component={RequesterPage} />
       <Route path="/tasker" component={TaskerPage} />
       <Route path="/shop" component={ShopPage} />
       <Route path="/laundry" component={LaundryPage} />
       <Route path="/cleaning" component={CleaningPage} />
       <Route path="/custom" component={CustomTaskPage} />
+      <Route path="/payments" component={PaymentMethodsManager} />
       <Route component={NotFound} />
     </Switch>
   );

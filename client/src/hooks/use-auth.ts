@@ -14,6 +14,19 @@ async function fetchUser(): Promise<User | null> {
     throw new Error(`${response.status}: ${response.statusText}`);
   }
 
+  // Fetch mock token for local auth environments
+  if (!localStorage.getItem("token")) {
+    try {
+      const tokenRes = await fetch("/api/auth/mock-token");
+      if (tokenRes.ok) {
+        const { token } = await tokenRes.json();
+        localStorage.setItem("token", token);
+      }
+    } catch (e) {
+      console.warn("Could not fetch mock token", e);
+    }
+  }
+
   return response.json();
 }
 

@@ -17,7 +17,7 @@ export default function LandingPage() {
             <a href="/api/login" data-testid="button-login">
               <Button variant="outline" size="sm">Log in</Button>
             </a>
-            <a href="/api/login" data-testid="button-get-started">
+            <a href="/signup" data-testid="button-get-started">
               <Button size="sm">Get Started <ArrowRight className="w-3 h-3 ml-1" /></Button>
             </a>
           </div>
@@ -40,13 +40,13 @@ export default function LandingPage() {
                 Post tasks at set prices and let trusted USC students handle your grocery shopping, dorm cleaning, and laundry. Or earn money by completing tasks for others.
               </p>
               <div className="flex items-center gap-3 pt-2 flex-wrap">
-                <a href="/api/login">
+                <a href="/signup">
                   <Button size="lg" data-testid="button-hero-cta">
                     Start Posting Tasks
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </a>
-                <a href="/api/login">
+                <a href="/signup">
                   <Button size="lg" variant="outline" data-testid="button-hero-earn">
                     Earn as a Tasker
                     <DollarSign className="w-4 h-4 ml-2" />

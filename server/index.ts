@@ -1,7 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { mountIntegratedRoutes } from "./index.integrated";
 import { createServer } from "http";
+import dotenv from "dotenv";
+
+dotenv.config({ path: "./server/.env" });
 
 const app = express();
 const httpServer = createServer(app);
@@ -21,6 +25,23 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+mountIntegratedRoutes(app);
+
+// Paste this into server/index.ts after app.use(express.urlencoded(...)) and before registerRoutes(...)
+app.get("/api/debug/user", (req, res) => {
+  // req.user is set by your auth middleware when authenticated; otherwise undefined.
+  // We return a simple JSON object to make debugging easy from curl / browser.
+  try {
+    // If you have a typed user, this just returns whatever is present.
+    const user = (req as any).user || null;
+
+    // Return JSON always (no HTML), so it's safe to call from client or curl.
+    return res.json({ ok: true, user });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: String(err) });
+  }
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -62,7 +83,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await registerRoutes(httpServer, app);
+  // Always register routes.
+  // Replit auth is already guarded inside routes.ts.
+  // This ensures API routes are available locally.
+  try {
+    await registerRoutes(httpServer, app);
+  } catch (err) {
+    console.error("registerRoutes() failed (continuing anyway):", err);
+  }
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -91,15 +119,20 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
+  // const port = parseInt(process.env.PORT || "5000", 10);
+  // httpServer.listen(
+  //   {
+  //     port,
+  //     host: "0.0.0.0",
+  //     reusePort: true,
+  //   },
+  //   () => {
+  //     log(`serving on port ${port}`);
+  //   },
+  // );
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  // Use simple listen signature for maximum compatibility on macOS / local dev
+  httpServer.listen(port, '127.0.0.1', () => {
+    log(`serving on port ${port}`);
+  });
 })();

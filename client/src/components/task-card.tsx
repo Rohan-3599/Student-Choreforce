@@ -100,7 +100,7 @@ export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetai
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-0.5 font-bold text-base" data-testid={`text-task-budget-${task.id}`}>
               <DollarSign className="w-4 h-4" />
-              {task.budget}
+              {(task.budget / 100).toFixed(2)}
             </div>
           </div>
         </div>

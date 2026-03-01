@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -26,6 +26,8 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "venmo",
   "zelle",
   "cashapp",
+  "credit_card",
+  "apple_pay",
 ]);
 
 export const paymentStatusEnum = pgEnum("payment_status", [
@@ -58,6 +60,7 @@ export const tasks = pgTable("tasks", {
   paymentMethod: paymentMethodEnum("payment_method"),
   paymentStatus: paymentStatusEnum("payment_status").default("pending"),
   paypalOrderId: text("paypal_order_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });
@@ -110,12 +113,51 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   description: z.string().min(10, "Description must be at least 10 characters"),
   location: z.string().min(2, "Location is required"),
   groceryItems: z.array(groceryItemSchema).optional(),
-  paymentMethod: z.enum(["paypal", "venmo", "zelle", "cashapp"]).optional(),
+  paymentMethod: z.enum(["paypal", "venmo", "zelle", "cashapp", "credit_card", "apple_pay"]).optional(),
+  stripePaymentIntentId: z.string().optional(),
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type TaskCategory = "grocery_shopping" | "dorm_cleaning" | "laundry" | "other";
 export type TaskStatus = "open" | "claimed" | "in_progress" | "completed" | "cancelled";
-export type PaymentMethod = "paypal" | "venmo" | "zelle" | "cashapp";
+export type PaymentMethod = "paypal" | "venmo" | "zelle" | "cashapp" | "credit_card" | "apple_pay";
 export type PaymentStatus = "pending" | "paid" | "failed";
+
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tasker_id: varchar("tasker_id").references(() => users.id),
+  reviewer_id: varchar("reviewer_id").references(() => users.id),
+  rating: integer("rating"),
+  body: text("body"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const payment_methods = pgTable("payment_methods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").references(() => users.id),
+  stripe_payment_method_id: varchar("stripe_payment_method_id", { length: 128 }),
+  brand: varchar("brand", { length: 64 }),
+  last4: varchar("last4", { length: 8 }),
+  exp_month: integer("exp_month"),
+  exp_year: integer("exp_year"),
+  is_default: boolean("is_default").notNull().default(false),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user_id: varchar("user_id").references(() => users.id),
+  amount_cents: integer("amount_cents"),
+  type: varchar("type", { length: 64 }),
+  reference: varchar("reference", { length: 255 }),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const payouts = pgTable("payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tasker_id: varchar("tasker_id").references(() => users.id),
+  amount_cents: integer("amount_cents"),
+  stripe_payout_id: varchar("stripe_payout_id", { length: 128 }),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});

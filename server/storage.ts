@@ -19,7 +19,11 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getTasks(category?: string): Promise<(Task & { poster?: User | null })[]> {
-    const conditions = category ? and(eq(tasks.category, category as any)) : undefined;
+    const conditions = and(
+      eq(tasks.status, "open"),
+      eq(tasks.paymentStatus, "paid"),
+      category ? eq(tasks.category, category as any) : undefined
+    );
     const taskRows = await db
       .select()
       .from(tasks)
