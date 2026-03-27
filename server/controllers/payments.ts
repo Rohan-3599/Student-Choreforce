@@ -94,16 +94,43 @@ router.post(
     try {
       const stripe = getStripe();
       const { amount } = req.body;
+      const userId = req.user.userId;
+
       if (!amount || amount <= 0)
         return res.status(400).json({ error: "Invalid amount" });
+
+      const { createOrRetrieveCustomer } = await import("../payments/stripe");
+      const customerId = await createOrRetrieveCustomer(userId);
+
+      const customerSession = await stripe.customerSessions.create({
+        customer: customerId,
+        components: {
+          payment_element: {
+            enabled: true,
+            features: {
+              payment_method_redisplay: 'enabled',
+              payment_method_save: 'enabled',
+              payment_method_remove: 'enabled',
+              payment_method_save_usage: 'on_session',
+            },
+          },
+        },
+      } as any);
 
       const intent = await stripe.paymentIntents.create({
         amount: amount,
         currency: "usd",
-        payment_method_types: ["card"],
-      });
+        customer: customerId,
+        setup_future_usage: "on_session",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      } as any);
 
-      res.json({ clientSecret: intent.client_secret });
+      res.json({ 
+        clientSecret: intent.client_secret,
+        customerSessionClientSecret: customerSession.client_secret
+      });
     } catch (e: any) {
       console.error("Stripe error:", e);
       res.status(500).json({ error: e.message });
