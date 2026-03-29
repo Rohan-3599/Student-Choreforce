@@ -80,11 +80,9 @@ export default function CustomTaskPage() {
                 {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
               </AvatarFallback>
             </Avatar>
-            <a href="/api/logout">
-              <Button variant="ghost" size="icon" data-testid="button-logout">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </a>
+            <Button variant="ghost" size="icon" data-testid="button-logout" onClick={() => logout()}>
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </header>

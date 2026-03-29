@@ -19,6 +19,7 @@ export const stripe = new Proxy({} as Stripe, {
 export async function createOrRetrieveCustomer(userId: string, email?: string) {
   const s = getStripe();
   const u = (await db.select().from(users).where(eq(users.id, userId)))[0];
+  if (!u) throw new Error(`User not found in database: ${userId}`);
   if (u.stripe_customer_id) return u.stripe_customer_id;
   const customer = await s.customers.create({ email: email || u.email || undefined, metadata: { userId: String(userId) } });
   await db.update(users).set({ stripe_customer_id: customer.id }).where(eq(users.id, userId));

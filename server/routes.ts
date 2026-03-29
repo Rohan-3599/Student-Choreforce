@@ -1,12 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import {
-  setupAuth,
-  registerAuthRoutes,
-  isAuthenticated,
-} from "./replit_integrations/auth";
-import jwt from "jsonwebtoken";
+import { setupAuth } from "./auth";
 import { insertTaskSchema, insertMessageSchema } from "@shared/schema";
 import { seedTasks } from "./seed";
 import {
@@ -28,95 +23,15 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
-  // Only setup Replit/OpenID auth if credentials are present.
-  // This prevents the entire route registration from failing when credentials are missing.
-  if (process.env.REPLIT_CLIENT_ID && process.env.REPLIT_CLIENT_SECRET) {
-    try {
-      await setupAuth(app);
-      console.log("Replit/OpenID auth configured");
-    } catch (err) {
-      console.error("Replit/OpenID setup failed (continuing without it):", err);
+  // Set up local Passport.js authentication
+  await setupAuth(app);
+
+  const authMiddleware = (req: any, res: any, next: any) => {
+    if (req.isAuthenticated()) {
+      return next();
     }
-  } else {
-    console.log(
-      "Skipping Replit/OpenID auth: REPLIT_CLIENT_ID/REPLIT_CLIENT_SECRET not set.",
-    );
-  }
-  // Register auth routes only when Replit creds are provided; otherwise skip.
-  // Also provide a fallback auth middleware so routes using auth still work in dev.
-  let authMiddleware = (_req: any, _res: any, next: any) => next();
-
-  try {
-    if (process.env.REPLIT_CLIENT_ID && process.env.REPLIT_CLIENT_SECRET) {
-      // register real auth routes (may be async)
-      await registerAuthRoutes(app);
-      console.log("Replit auth routes registered.");
-      // if isAuthenticated is a function provided by the auth module, use it
-      if (typeof isAuthenticated === "function") {
-        authMiddleware = isAuthenticated;
-      }
-    } else {
-      console.log(
-        "Skipping Replit/OpenID auth: REPLIT_CLIENT_ID/REPLIT_CLIENT_SECRET not set. Using local mock auth.",
-      );
-
-      // Mock user data for local development
-      const mockUser = {
-        id: "seed-user-1",
-        email: "tommy.trojan@usc.edu",
-        firstName: "Tommy",
-        lastName: "Trojan",
-        profileImageUrl: null,
-      };
-
-      authMiddleware = (req: any, _res: any, next: any) => {
-        req.user = req.user || { claims: { sub: mockUser.id } };
-        next();
-      };
-
-      app.get("/api/auth/user", (_req, res) => res.json(mockUser));
-      app.get("/api/logout", (_req, res) => res.redirect("/"));
-      app.get("/api/login", (_req, res) => res.redirect("/"));
-      app.get("/api/auth/mock-token", (_req, res) => {
-        const token = jwt.sign(
-          { userId: mockUser.id, roles: ["user"] },
-          process.env.JWT_SECRET || "supersecret",
-          { expiresIn: "30d" },
-        );
-        res.json({ token });
-      });
-    }
-  } catch (err) {
-    console.error(
-      "registerAuthRoutes failed (continuing without auth routes):",
-      err,
-    );
-
-    const mockUser = {
-      id: "seed-user-1",
-      email: "tommy.trojan@usc.edu",
-      firstName: "Tommy",
-      lastName: "Trojan",
-      profileImageUrl: null,
-    };
-
-    authMiddleware = (req: any, _res: any, next: any) => {
-      req.user = req.user || { claims: { sub: mockUser.id } };
-      next();
-    };
-
-    app.get("/api/auth/user", (_req, res) => res.json(mockUser));
-    app.get("/api/logout", (_req, res) => res.redirect("/"));
-    app.get("/api/login", (_req, res) => res.redirect("/"));
-    app.get("/api/auth/mock-token", (_req, res) => {
-      const token = jwt.sign(
-        { userId: mockUser.id, roles: ["user"] },
-        process.env.JWT_SECRET || "supersecret",
-        { expiresIn: "30d" },
-      );
-      res.json({ token });
-    });
-  }
+    res.status(401).json({ message: "Unauthorized" });
+  };
 
   app.get("/api/tasks", async (req, res) => {
     try {
@@ -131,7 +46,7 @@ export async function registerRoutes(
 
   app.get("/api/tasks/my/posted", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const tasks = await storage.getTasksByPoster(userId);
       res.json(tasks);
     } catch (error) {
@@ -142,7 +57,7 @@ export async function registerRoutes(
 
   app.get("/api/tasks/my/claimed", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const tasks = await storage.getTasksByClaimer(userId);
       res.json(tasks);
     } catch (error) {
@@ -171,7 +86,7 @@ export async function registerRoutes(
           errors: parsed.error.flatten(),
         });
       }
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const categoryPrice = CATEGORY_PRICES[parsed.data.category];
       const task = await storage.createTask({
         ...parsed.data,
@@ -187,7 +102,7 @@ export async function registerRoutes(
 
   app.post("/api/tasks/:id/claim", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.claimTask(req.params.id, userId);
       if (!task)
         return res.status(400).json({ message: "Cannot claim this task" });
@@ -200,7 +115,7 @@ export async function registerRoutes(
 
   app.post("/api/tasks/:id/complete", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.completeTask(req.params.id, userId);
       if (!task)
         return res.status(400).json({ message: "Cannot complete this task" });
@@ -213,7 +128,7 @@ export async function registerRoutes(
 
   app.post("/api/tasks/:id/cancel", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.cancelTask(req.params.id, userId);
       if (!task)
         return res.status(400).json({ message: "Cannot cancel this task" });
@@ -226,7 +141,7 @@ export async function registerRoutes(
 
   app.get("/api/tasks/:id/messages", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.getTask(req.params.id);
       if (!task) return res.status(404).json({ message: "Task not found" });
       if (task.posterId !== userId && task.claimerId !== userId) {
@@ -244,7 +159,7 @@ export async function registerRoutes(
 
   app.post("/api/tasks/:id/messages", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.getTask(req.params.id);
       if (!task) return res.status(404).json({ message: "Task not found" });
       if (task.posterId !== userId && task.claimerId !== userId) {
@@ -295,7 +210,7 @@ export async function registerRoutes(
 
   app.post("/api/tasks/:id/payment", authMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const task = await storage.getTask(req.params.id);
       if (!task) return res.status(404).json({ message: "Task not found" });
       if (task.posterId !== userId)

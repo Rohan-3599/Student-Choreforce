@@ -11,13 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, Send, ShoppingCart, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { Zap, LogOut, ClipboardList, Send, WashingMachine, SprayCan, PenLine } from "lucide-react";
 import type { Task, TaskCategory } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
 
 export default function TaskerPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | "all">("all");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -46,7 +46,6 @@ export default function TaskerPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to claim task.", variant: "destructive" });
@@ -63,7 +62,6 @@ export default function TaskerPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to complete task.", variant: "destructive" });
@@ -86,12 +84,6 @@ export default function TaskerPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/shop">
-              <Button variant="outline" size="sm" data-testid="button-shop-groceries">
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                Shop Groceries
-              </Button>
-            </Link>
             <Link href="/laundry">
               <Button variant="outline" size="sm" data-testid="button-laundry">
                 <WashingMachine className="w-3.5 h-3.5 mr-1.5" />
@@ -123,11 +115,12 @@ export default function TaskerPage() {
                   {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
                 </AvatarFallback>
               </Avatar>
-              <a href="/api/logout">
-                <Button variant="ghost" size="icon" data-testid="button-logout">
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </a>
+              <button 
+                onClick={() => logout()}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>

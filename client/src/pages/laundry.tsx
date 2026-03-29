@@ -21,7 +21,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import type { PaymentMethod } from "@shared/schema";
@@ -127,11 +127,6 @@ export default function LaundryPage() {
   const additionalLoadsPrice = (loads - 1) * PRICE_EXTRA_LOAD;
 
   useEffect(() => {
-    console.log("Price updated:", totalPrice, "Soil:", soilLevel, "Loads:", loads);
-  }, [totalPrice, soilLevel, loads]);
-
-
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentIntentId = params.get('payment_intent');
     const redirectStatus = params.get('redirect_status');
@@ -176,6 +171,7 @@ export default function LaundryPage() {
       }
     }
   }, [navigate, toast]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-white dark:bg-card sticky top-0 z-50">
@@ -197,11 +193,12 @@ export default function LaundryPage() {
                 {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
               </AvatarFallback>
             </Avatar>
-            <a href="/api/logout">
-              <Button variant="ghost" size="icon" data-testid="button-logout">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </a>
+            <button 
+              onClick={() => logout()}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -432,6 +429,8 @@ export default function LaundryPage() {
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
+                      fromDate={new Date()}
+                      toDate={addDays(new Date(), 7)}
                       initialFocus
                     />
                   </PopoverContent>

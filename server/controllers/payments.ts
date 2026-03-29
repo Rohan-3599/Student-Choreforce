@@ -3,7 +3,6 @@ import express from "express";
 import Stripe from "stripe";
 import { db } from "../db";
 import { payment_methods } from "@shared/schema";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -14,22 +13,15 @@ function getStripe(): Stripe {
 }
 
 function requireAuth(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  console.log("Auth header:", auth);
-  if (!auth) return res.status(401).json({ error: "Unauthorized" });
-  const token = auth.replace("Bearer ", "");
-  console.log("Token:", token);
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || "supersecret");
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
+  if (req.isAuthenticated()) {
+    return next();
   }
+  res.status(401).json({ error: "Unauthorized" });
 }
 
 function requireStripe(req: any, res: any, next: any) {
   if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({ error: "Stripe is not configured" });
+    return res.status(503).json({ error: "Stripe is not configured. Please provide STRIPE_SECRET_KEY." });
   }
   next();
 }
@@ -41,7 +33,7 @@ router.post(
   async (req: any, res: any) => {
     try {
       const stripe = getStripe();
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { createOrRetrieveCustomer } = await import("../payments/stripe");
       const customerId = await createOrRetrieveCustomer(userId);
       const si = await stripe.setupIntents.create({ customer: customerId });
@@ -60,7 +52,7 @@ router.post(
     try {
       const stripe = getStripe();
       const { payment_method } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { createOrRetrieveCustomer } = await import("../payments/stripe");
       const custId = await createOrRetrieveCustomer(userId);
       await stripe.paymentMethods.attach(payment_method, { customer: custId });
@@ -94,7 +86,7 @@ router.post(
     try {
       const stripe = getStripe();
       const { amount } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       if (!amount || amount <= 0)
         return res.status(400).json({ error: "Invalid amount" });

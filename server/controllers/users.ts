@@ -3,24 +3,14 @@ import express from "express";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { users, reviews, payment_methods } from "@shared/schema";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
 function requireAuth(req: any, res: any, next: any) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: "Unauthorized" });
-  const token = auth.replace("Bearer ", "");
-  try {
-    const payload: any = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "supersecret",
-    );
-    req.user = payload;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
+  if (req.isAuthenticated()) {
+    return next();
   }
+  res.status(401).json({ error: "Unauthorized" });
 }
 
 router.get("/tasker/:id", async (req, res) => {
@@ -36,7 +26,7 @@ router.get("/tasker/:id", async (req, res) => {
 });
 
 router.put("/me", requireAuth, async (req: any, res: any) => {
-  const uid = req.user.userId;
+  const uid = req.user.id;
   const { first_name, last_name, birth_date, gender, languages, usc_id } =
     req.body;
   await db
@@ -55,13 +45,13 @@ router.put("/me", requireAuth, async (req: any, res: any) => {
 });
 
 router.get("/me", requireAuth, async (req: any, res: any) => {
-  const uid = req.user.userId;
+  const uid = req.user.id;
   const u = await db.select().from(users).where(eq(users.id, uid));
   res.json({ user: u[0] });
 });
 
 router.get("/me/payment-methods", requireAuth, async (req: any, res: any) => {
-  const uid = req.user.userId;
+  const uid = req.user.id;
   const pm = await db
     .select()
     .from(payment_methods)

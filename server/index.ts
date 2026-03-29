@@ -26,7 +26,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-mountIntegratedRoutes(app);
+// Routes are mounted inside the async block below to ensure proper initialization order.
 
 // Paste this into server/index.ts after app.use(express.urlencoded(...)) and before registerRoutes(...)
 app.get("/api/debug/user", (req, res) => {
@@ -88,6 +88,7 @@ app.use((req, res, next) => {
   // This ensures API routes are available locally.
   try {
     await registerRoutes(httpServer, app);
+    mountIntegratedRoutes(app);
   } catch (err) {
     console.error("registerRoutes() failed (continuing anyway):", err);
   }
