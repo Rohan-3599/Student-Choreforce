@@ -41,10 +41,11 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/auth/register", data);
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.message || "Registration failed");
+      }
       return res.json();
-    },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
     },
     onError: (error: Error) => {
       toast({
@@ -61,7 +62,6 @@ export function useAuth() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
-      window.location.href = "/";
     },
   });
 

@@ -14,7 +14,7 @@ import { Loader2, Check, X, ShieldCheck } from "lucide-react";
 const languagesOptions = ["English", "Chinese", "Spanish"];
 const genders = ["Men", "Women", "No preference"];
 
-export default function SignupForm({ onToggle }: { onToggle: () => void }) {
+export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => void; onSuccess: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -67,10 +67,12 @@ export default function SignupForm({ onToggle }: { onToggle: () => void }) {
         languages
       };
       await register(payload);
+      onSuccess(email);
     } catch (err: any) {
       setError(err?.message || "Registration failed");
     }
   }
+
 
   return (
     <div className="flex justify-center items-center min-h-[40vh] py-6 px-4">
@@ -111,6 +113,16 @@ export default function SignupForm({ onToggle }: { onToggle: () => void }) {
                 onChange={e => setEmail(e.target.value)}
                 required
               />
+              {email.length > 0 && !email.toLowerCase().endsWith("@usc.edu") && (
+                <p className="text-xs text-amber-500 flex items-center gap-1">
+                  <X className="w-3 h-3" /> Must be a @usc.edu email address
+                </p>
+              )}
+              {email.length > 0 && email.toLowerCase().endsWith("@usc.edu") && (
+                <p className="text-xs text-green-500 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Valid USC email
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -151,9 +163,9 @@ export default function SignupForm({ onToggle }: { onToggle: () => void }) {
                 <DatePicker
                   selected={birthDate}
                   onChange={(d: Date | null) => setBirthDate(d)}
-                  dateFormat="yyyy-MM-dd"
+                  dateFormat="MM/dd/yyyy"
                   className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:bg-background"
-                  placeholderText="YYYY-MM-DD"
+                  placeholderText="MM/DD/YYYY"
                   required
                 />
               </div>

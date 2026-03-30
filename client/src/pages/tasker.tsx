@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, LogOut, ClipboardList, Send, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { TaskerVerificationFlow } from "@/components/TaskerVerificationFlow";
 import type { Task, TaskCategory } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
@@ -126,8 +127,13 @@ export default function TaskerPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        <div className="space-y-2">
+      {user && !user.isTaskerVerified ? (
+        <main className="max-w-6xl mx-auto px-6 py-8">
+          <TaskerVerificationFlow onSuccess={() => {}} />
+        </main>
+      ) : (
+        <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+          <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-tasker-title">
             Find Tasks
           </h1>
@@ -224,6 +230,7 @@ export default function TaskerPage() {
           </TabsContent>
         </Tabs>
       </main>
+      )}
 
       <TaskDetailDialog
         task={selectedTask ?? null}

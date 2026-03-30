@@ -89,7 +89,7 @@ export default function LaundryPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [timeWindow, setTimeWindow] = useState<string>("10:00 AM - 11:00 AM");
   const [notes, setNotes] = useState("");
-  const [foldingLoads, setFoldingLoads] = useState(0);
+  const [wantsFolding, setWantsFolding] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -112,9 +112,11 @@ export default function LaundryPage() {
     // Additional loads
     price += (loads - 1) * PRICE_EXTRA_LOAD;
     // Folding service
-    price += foldingLoads * PRICE_FOLDING_LOAD;
+    if (wantsFolding) {
+      price += loads * PRICE_FOLDING_LOAD;
+    }
     return Number(price.toFixed(2));
-  }, [showWasher, showDryer, soilLevel, loads, foldingLoads]);
+  }, [showWasher, showDryer, soilLevel, loads, wantsFolding]);
 
   const serviceFee = useMemo(() => {
     return Number((subtotal * SERVICE_FEE_PERCENT).toFixed(2));
@@ -137,11 +139,11 @@ export default function LaundryPage() {
         try {
           const { orderData, totalPrice, localPickupLocation } = JSON.parse(storedOrderStr);
           const settingsParts: string[] = [];
-          const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, foldingLoads, notes } = orderData;
+          const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, wantsFolding, notes } = orderData;
           
           if (serviceType !== "dry") settingsParts.push(`Wash: ${washTemp}, ${washCycle}, Soil: ${soilLevel}`);
           if (serviceType !== "wash") settingsParts.push(`Dry: ${dryCycle}`);
-          if (foldingLoads > 0) settingsParts.push(`Folding: ${foldingLoads} load${foldingLoads > 1 ? "s" : ""}`);
+          if (wantsFolding) settingsParts.push(`Folding: Yes (${loads} load${loads > 1 ? "s" : ""})`);
           
           const dateStr = selectedDate ? format(new Date(selectedDate), "PPPP") : "TBD";
           settingsParts.push(`Scheduled for: ${dateStr} @ ${timeWindow}`);
@@ -251,29 +253,16 @@ export default function LaundryPage() {
               <h3 className="font-semibold text-base">Folding Service</h3>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">$1.99 per load (max 4)</span>
+              <span className="text-sm text-muted-foreground">$1.99 per load</span>
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  disabled={foldingLoads <= 0}
-                  onClick={() => setFoldingLoads((l) => Math.max(0, l - 1))}
-                  data-testid="button-folding-minus"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <span className="text-xl font-bold w-8 text-center" data-testid="text-folding-count">{foldingLoads}</span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  disabled={foldingLoads >= 4}
-                  onClick={() => setFoldingLoads((l) => Math.min(4, l + 1))}
-                  data-testid="button-folding-plus"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                <Label htmlFor="folding-switch" className="text-sm font-medium">
+                  {wantsFolding ? "Yes" : "No"}
+                </Label>
+                <Switch 
+                  id="folding-switch" 
+                  checked={wantsFolding} 
+                  onCheckedChange={setWantsFolding} 
+                />
               </div>
             </div>
           </CardContent>
@@ -516,10 +505,10 @@ export default function LaundryPage() {
                 <span>+${additionalLoadsPrice.toFixed(2)}</span>
               </div>
             )}
-            {foldingLoads > 0 && (
+            {wantsFolding && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Folding Service ({foldingLoads} load{foldingLoads > 1 ? 's' : ''})</span>
-                <span>+${(foldingLoads * PRICE_FOLDING_LOAD).toFixed(2)}</span>
+                <span>Folding Service ({loads} load{loads > 1 ? 's' : ''})</span>
+                <span>+${(loads * PRICE_FOLDING_LOAD).toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm text-muted-foreground font-medium pt-2 border-t border-dashed">
@@ -575,7 +564,7 @@ export default function LaundryPage() {
                 dryCycle,
                 selectedDate,
                 timeWindow,
-                foldingLoads,
+                wantsFolding,
                 notes,
                 pickupLocation
               }}
@@ -606,11 +595,11 @@ function CheckoutForm({
   const createOrderMutation = useMutation({
     mutationFn: async (paymentIntentId: string) => {
       const settingsParts: string[] = [];
-      const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, foldingLoads, notes } = orderData;
+      const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, wantsFolding, notes } = orderData;
 
       if (serviceType !== "dry") settingsParts.push(`Wash: ${washTemp}, ${washCycle}, Soil: ${soilLevel}`);
       if (serviceType !== "wash") settingsParts.push(`Dry: ${dryCycle}`);
-      if (foldingLoads > 0) settingsParts.push(`Folding: ${foldingLoads} load${foldingLoads > 1 ? "s" : ""}`);
+      if (wantsFolding) settingsParts.push(`Folding: Yes (${loads} load${loads > 1 ? "s" : ""})`);
       
       const dateStr = selectedDate ? format(new Date(selectedDate), "PPPP") : "TBD";
       settingsParts.push(`Scheduled for: ${dateStr} @ ${timeWindow}`);

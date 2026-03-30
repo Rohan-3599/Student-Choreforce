@@ -1,10 +1,10 @@
 import { tasks, type Task, type InsertTask, messages, type Message, type InsertMessage } from "@shared/schema";
 import { users, type User } from "@shared/models/auth";
 import { db } from "./db";
-import { eq, desc, and, asc } from "drizzle-orm";
+import { eq, desc, and, asc, ne } from "drizzle-orm";
 
 export interface IStorage {
-  getTasks(category?: string): Promise<(Task & { poster?: User | null })[]>;
+  getTasks(category?: string, excludePosterId?: string): Promise<(Task & { poster?: User | null })[]>;
   getTask(id: string): Promise<(Task & { poster?: User | null; claimer?: User | null }) | undefined>;
   createTask(task: InsertTask & { posterId: string }): Promise<Task>;
   claimTask(taskId: string, claimerId: string): Promise<Task | undefined>;
@@ -18,11 +18,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getTasks(category?: string): Promise<(Task & { poster?: User | null })[]> {
+  async getTasks(category?: string, excludePosterId?: string): Promise<(Task & { poster?: User | null })[]> {
     const conditions = and(
       eq(tasks.status, "open"),
       eq(tasks.paymentStatus, "paid"),
-      category ? eq(tasks.category, category as any) : undefined
+      category ? eq(tasks.category, category as any) : undefined,
+      excludePosterId ? ne(tasks.posterId, excludePosterId) : undefined
     );
     const taskRows = await db
       .select()

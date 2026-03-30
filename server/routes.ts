@@ -33,10 +33,11 @@ export async function registerRoutes(
     res.status(401).json({ message: "Unauthorized" });
   };
 
-  app.get("/api/tasks", async (req, res) => {
+  app.get("/api/tasks", async (req: any, res) => {
     try {
       const category = req.query.category as string | undefined;
-      const tasks = await storage.getTasks(category);
+      const excludePosterId = req.isAuthenticated() ? req.user?.id : undefined;
+      const tasks = await storage.getTasks(category, excludePosterId);
       res.json(tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
