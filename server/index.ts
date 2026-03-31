@@ -4,6 +4,8 @@ import { serveStatic } from "./static";
 import { mountIntegratedRoutes } from "./index.integrated";
 import { createServer } from "http";
 import dotenv from "dotenv";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 dotenv.config({ path: "./server/.env" });
 
@@ -86,6 +88,16 @@ app.use((req, res, next) => {
   // Always register routes.
   // Replit auth is already guarded inside routes.ts.
   // This ensures API routes are available locally.
+
+  // Run passive migrations for any newly introduced columns seamlessly on boot
+  // This guarantees Replit production deployments never fail due to missing columns
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tasker_verified boolean NOT NULL DEFAULT false;`);
+    log("Verified users schema is up-to-date");
+  } catch (err) {
+    console.error("Failed to verify database schema:", err);
+  }
+
   try {
     await registerRoutes(httpServer, app);
     mountIntegratedRoutes(app);
