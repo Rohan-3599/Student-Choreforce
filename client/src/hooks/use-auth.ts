@@ -27,7 +27,9 @@ export function useAuth() {
       return res.json();
     },
     onSuccess: (user: User) => {
+      queryClient.clear(); // Wipe any stale data from previous sessions
       queryClient.setQueryData(["/api/auth/user"], user);
+      window.location.replace("/"); // Guarantee clean router state to dashboard
     },
     onError: (error: Error) => {
       toast({
@@ -61,7 +63,9 @@ export function useAuth() {
       await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      queryClient.clear(); // Wipe all user data
       queryClient.setQueryData(["/api/auth/user"], null);
+      window.location.replace("/"); // Guarantee clean router state to login
     },
   });
 
