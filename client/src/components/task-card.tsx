@@ -2,10 +2,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, DollarSign, CheckCircle, ShoppingCart, MessageCircle } from "lucide-react";
+import { MapPin, Clock, DollarSign, CheckCircle, MessageCircle } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import { PaymentMethodBadge } from "@/components/payment-method-selector";
-import type { Task, GroceryItemSelection, PaymentMethod } from "@shared/schema";
+import type { Task, PaymentMethod } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
 
@@ -69,15 +69,6 @@ export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetai
           </div>
         )}
 
-        {task.category === "grocery_shopping" && (task.groceryItems as GroceryItemSelection[] | null)?.length ? (
-          <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-            <ShoppingCart className="w-3 h-3" />
-            <span data-testid={`text-grocery-count-${task.id}`}>
-              {(task.groceryItems as GroceryItemSelection[]).reduce((s, i) => s + i.quantity, 0)} items · $
-              {(task.groceryItems as GroceryItemSelection[]).reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}
-            </span>
-          </div>
-        ) : null}
 
         <div className="flex items-center justify-between gap-3 pt-1 border-t">
           <div className="flex items-center gap-2">

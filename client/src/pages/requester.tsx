@@ -5,20 +5,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/auth-utils";
 import { TaskCard } from "@/components/task-card";
-import { CreateTaskDialog } from "@/components/create-task-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, HardHat, ShoppingCart, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { Zap, ClipboardList, HardHat, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { UserNav } from "@/components/user-nav";
 import type { Task, InsertTask } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
 
 export default function RequesterPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -31,22 +31,6 @@ export default function RequesterPage() {
     enabled: !!selectedTaskId,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: InsertTask) => apiRequest("POST", "/api/tasks", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      toast({ title: "Task posted!", description: "Your task is now visible to taskers." });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
-        return;
-      }
-      toast({ title: "Error", description: "Failed to create task.", variant: "destructive" });
-    },
-  });
-
   const cancelMutation = useMutation({
     mutationFn: (taskId: string) => apiRequest("POST", `/api/tasks/${taskId}/cancel`),
     onSuccess: () => {
@@ -57,7 +41,6 @@ export default function RequesterPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to cancel task.", variant: "destructive" });
@@ -74,7 +57,6 @@ export default function RequesterPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to complete task.", variant: "destructive" });
@@ -97,12 +79,6 @@ export default function RequesterPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/shop">
-              <Button variant="outline" size="sm" data-testid="button-shop-groceries">
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                Shop Groceries
-              </Button>
-            </Link>
             <Link href="/laundry">
               <Button variant="outline" size="sm" data-testid="button-laundry">
                 <WashingMachine className="w-3.5 h-3.5 mr-1.5" />
@@ -127,20 +103,7 @@ export default function RequesterPage() {
                 Switch to Tasker
               </Button>
             </Link>
-            <CreateTaskDialog onSubmit={(data) => createMutation.mutate(data)} isPending={createMutation.isPending} />
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.profileImageUrl ?? undefined} />
-                <AvatarFallback className="text-xs">
-                  {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <a href="/api/logout">
-                <Button variant="ghost" size="icon" data-testid="button-logout">
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </a>
-            </div>
+            <UserNav />
           </div>
         </div>
       </header>
@@ -150,7 +113,7 @@ export default function RequesterPage() {
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-requester-title">
             My Requests
           </h1>
-          <p className="text-muted-foreground">Post tasks and track their progress.</p>
+          <p className="text-muted-foreground">Track your chores and requests.</p>
         </div>
 
         <Tabs defaultValue="open">
@@ -172,7 +135,7 @@ export default function RequesterPage() {
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-64 rounded-md" />)}
               </div>
             ) : openTasks.length === 0 ? (
-              <EmptyState message="No open tasks. Post a task to get help from fellow Trojans!" />
+              <EmptyState message="No open tasks. Select a service above to get help from fellow Trojans!" />
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {openTasks.map((task) => (

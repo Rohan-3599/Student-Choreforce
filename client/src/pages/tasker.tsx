@@ -11,20 +11,30 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, Send, ShoppingCart, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { Zap, ClipboardList, Send, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { UserNav } from "@/components/user-nav";
+import { TaskerVerificationFlow } from "@/components/TaskerVerificationFlow";
 import type { Task, TaskCategory } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
 
 export default function TaskerPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | "all">("all");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string>(user?.taskerGenderPreference || "");
+  const [buildingFilter, setBuildingFilter] = useState<string>(user?.taskerBuildingName || "");
+  const [languageFilter, setLanguageFilter] = useState<string>(user?.taskerLanguages?.[0] || "");
 
-  const categoryParam = selectedCategory !== "all" ? `?category=${selectedCategory}` : "";
+  let queryUrl = `/api/tasks?`;
+  if (selectedCategory !== "all") queryUrl += `category=${selectedCategory}&`;
+  if (genderFilter) queryUrl += `gender=${genderFilter}&`;
+  if (buildingFilter) queryUrl += `building=${encodeURIComponent(buildingFilter)}&`;
+  if (languageFilter) queryUrl += `language=${encodeURIComponent(languageFilter)}&`;
+
   const { data: allTasks, isLoading: allLoading } = useQuery<(Task & { poster?: User | null })[]>({
-    queryKey: [`/api/tasks${categoryParam}`],
+    queryKey: [queryUrl],
   });
 
   const { data: claimedTasks, isLoading: claimedLoading } = useQuery<(Task & { poster?: User | null })[]>({
@@ -46,7 +56,6 @@ export default function TaskerPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to claim task.", variant: "destructive" });
@@ -63,7 +72,6 @@ export default function TaskerPage() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({ title: "Unauthorized", description: "Logging in again...", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
         return;
       }
       toast({ title: "Error", description: "Failed to complete task.", variant: "destructive" });
@@ -86,12 +94,6 @@ export default function TaskerPage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/shop">
-              <Button variant="outline" size="sm" data-testid="button-shop-groceries">
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                Shop Groceries
-              </Button>
-            </Link>
             <Link href="/laundry">
               <Button variant="outline" size="sm" data-testid="button-laundry">
                 <WashingMachine className="w-3.5 h-3.5 mr-1.5" />
@@ -116,25 +118,18 @@ export default function TaskerPage() {
                 Switch to Requester
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.profileImageUrl ?? undefined} />
-                <AvatarFallback className="text-xs">
-                  {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <a href="/api/logout">
-                <Button variant="ghost" size="icon" data-testid="button-logout">
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </a>
-            </div>
+            <UserNav />
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        <div className="space-y-2">
+      {user && !user.isTaskerVerified ? (
+        <main className="max-w-6xl mx-auto px-6 py-8">
+          <TaskerVerificationFlow onSuccess={() => {}} />
+        </main>
+      ) : (
+        <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+          <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-tasker-title">
             Find Tasks
           </h1>
@@ -156,7 +151,16 @@ export default function TaskerPage() {
 
           <TabsContent value="browse" className="mt-6 space-y-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+              <TaskFilters 
+                selectedCategory={selectedCategory} 
+                onCategoryChange={setSelectedCategory} 
+                genderFilter={genderFilter}
+                onGenderChange={setGenderFilter}
+                buildingFilter={buildingFilter}
+                onBuildingChange={setBuildingFilter}
+                languageFilter={languageFilter}
+                onLanguageChange={setLanguageFilter}
+              />
               <p className="text-sm text-muted-foreground" data-testid="text-task-count">
                 {openTasks.length} available {openTasks.length === 1 ? "task" : "tasks"}
               </p>
@@ -231,6 +235,7 @@ export default function TaskerPage() {
           </TabsContent>
         </Tabs>
       </main>
+      )}
 
       <TaskDetailDialog
         task={selectedTask ?? null}

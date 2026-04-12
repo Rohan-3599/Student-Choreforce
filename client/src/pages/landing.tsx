@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign, CreditCard, Wallet, Building2 } from "lucide-react";
+import { ClipboardList, SprayCan, WashingMachine, ArrowRight, Shield, Zap, Users, DollarSign, CreditCard, Wallet, Building2 } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -37,7 +37,7 @@ export default function LandingPage() {
                 <span className="text-primary"> Trojans</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-lg leading-relaxed" data-testid="text-hero-subtitle">
-                Post tasks at set prices and let trusted USC students handle your grocery shopping, dorm cleaning, and laundry. Or earn money by completing tasks for others.
+                Post tasks at set prices and let trusted USC students handle your dorm cleaning and laundry. Or earn money by completing tasks for others.
               </p>
               <div className="flex items-center gap-3 pt-2 flex-wrap">
                 <a href="/signup">
@@ -72,20 +72,20 @@ export default function LandingPage() {
             <div className="hidden lg:grid grid-cols-2 gap-4">
               <div className="space-y-4">
                 <ServicePreviewCard
-                  icon={ShoppingCart}
-                  title="Grocery Shopping"
-                  description="Fresh groceries delivered to your dorm"
-                  price="10% + 15%"
-                  colorClass="text-emerald-600 dark:text-emerald-400"
-                  bgClass="bg-emerald-50 dark:bg-emerald-950/30"
-                />
-                <ServicePreviewCard
                   icon={WashingMachine}
                   title="Laundry"
                   description="Wash, dry, and fold service"
                   price="$20"
                   colorClass="text-violet-600 dark:text-violet-400"
                   bgClass="bg-violet-50 dark:bg-violet-950/30"
+                />
+                <ServicePreviewCard
+                  icon={ClipboardList}
+                  title="Custom Tasks"
+                  description="Anything else you need help with"
+                  price="Custom"
+                  colorClass="text-amber-600 dark:text-amber-400"
+                  bgClass="bg-amber-50 dark:bg-amber-950/30"
                 />
               </div>
               <div className="pt-8">
@@ -147,14 +147,6 @@ export default function LandingPage() {
             <p className="text-muted-foreground max-w-md mx-auto">Transparent, fixed pricing for every category</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
-            <PriceCard
-              icon={ShoppingCart}
-              title="Grocery Shopping"
-              price={25}
-              description="Pick up groceries from nearby stores and deliver to your dorm"
-              colorClass="text-emerald-600 dark:text-emerald-400"
-              bgClass="bg-emerald-50 dark:bg-emerald-950/30"
-            />
             <PriceCard
               icon={SprayCan}
               title="Dorm Cleaning"
@@ -241,7 +233,7 @@ export default function LandingPage() {
 }
 
 function ServicePreviewCard({ icon: Icon, title, description, price, colorClass, bgClass }: {
-  icon: typeof ShoppingCart;
+  icon: typeof WashingMachine | typeof ClipboardList | typeof SprayCan;
   title: string;
   description: string;
   price: string;
@@ -276,7 +268,7 @@ function StepItem({ step, text }: { step: string; text: string }) {
 }
 
 function PriceCard({ icon: Icon, title, price, description, colorClass, bgClass }: {
-  icon: typeof ShoppingCart;
+  icon: typeof WashingMachine | typeof SprayCan;
   title: string;
   price: number;
   description: string;

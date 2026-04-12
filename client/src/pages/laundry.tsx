@@ -12,16 +12,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { USC_BUILDINGS } from "@/lib/constants";
 import { Switch } from "@/components/ui/switch";
 import {
-  WashingMachine, Zap, LogOut, ArrowLeft, Minus, Plus,
+  WashingMachine, Zap, ArrowLeft, Minus, Plus,
   CheckCircle, Droplets, Wind, Thermometer, RotateCw, Shirt,
+  ChevronDown, ChevronUp, CalendarIcon
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, addDays } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import type { PaymentMethod } from "@shared/schema";
 import PaymentMethodSelector from "@/components/payment-method-selector";
 import { StripeProvider } from "@/components/StripeProvider";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { UserNav } from "@/components/user-nav";
 
 type ServiceType = "wash" | "dry" | "both";
 
@@ -38,24 +47,17 @@ const SERVICE_ICONS: Record<ServiceType, typeof Droplets> = {
 };
 
 const PRICE_LABOR = 10.00;
-const PRICE_SERVICE = 2.24;
 const PRICE_WASHER_BASE = 1.50;
 const PRICE_DRYER_BASE = 1.25;
 const PRICE_SOIL_MEDIUM = 0.25;
 const PRICE_SOIL_HEAVY = 0.50;
 const PRICE_EXTRA_LOAD = 4.99;
+const PRICE_FOLDING_LOAD = 1.99;
+const SERVICE_FEE_PERCENT = 0.18;
 
 const SOIL_LEVELS = ["Light", "Medium", "Heavy"] as const;
 
-const USC_HOUSING = [
-  "Birnkrant Residential College", "Marks Tower", "New North Residential College",
-  "Pardee Tower", "McCarthy Honors Residential College", "Parkside Arts & Humanities Residential College",
-  "Parkside International Residential College", "Cale and Irani Residential College",
-  "Cardinal Gardens", "Parkside Apartments", "Webb Tower", "Annenberg House",
-  "Cardinal ’N Gold", "Century Apartments", "Cowlings and Ilium Residential College",
-  "La Sorbonne Apartments", "McClintock Apartments", "McMorrow Residential College",
-  "Nemirovsky and Bohnett Residential College", "Troy Hall"
-];
+// Using global USC_BUILDINGS from constants.ts instead of local list
 
 const SCHEDULE_WINDOWS = ["ASAP", ...Array.from({ length: 12 }, (_, i) => {
   const date = new Date();
@@ -77,19 +79,23 @@ export default function LaundryPage() {
   const [soilLevel, setSoilLevel] = useState<string>("Light");
   const [dryHeat, setDryHeat] = useState<string>("Medium");
   const [dryCycle, setDryCycle] = useState<string>("Normal");
-  const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLocation, setPickupLocation] = useState(user?.building_name || "");
   const [schedule, setSchedule] = useState("ASAP");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [timeWindow, setTimeWindow] = useState<string>("10:00 AM - 11:00 AM");
   const [notes, setNotes] = useState("");
+  const [wantsFolding, setWantsFolding] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [customerSessionClientSecret, setCustomerSessionClientSecret] = useState<string | null>(null);
 
   const showWasher = serviceType === "wash" || serviceType === "both";
   const showDryer = serviceType === "dry" || serviceType === "both";
 
-  // Calculate 1st load price using useMemo to ensure stability
-  const totalPrice = useMemo(() => {
-    let price = PRICE_LABOR + PRICE_SERVICE;
+  // Calculate subtotal and total
+  const subtotal = useMemo(() => {
+    let price = PRICE_LABOR;
     if (showWasher) {
       price += PRICE_WASHER_BASE;
       if (soilLevel === "Medium") price += PRICE_SOIL_MEDIUM;
@@ -100,16 +106,68 @@ export default function LaundryPage() {
     }
     // Additional loads
     price += (loads - 1) * PRICE_EXTRA_LOAD;
+    // Folding service
+    if (wantsFolding) {
+      price += loads * PRICE_FOLDING_LOAD;
+    }
     return Number(price.toFixed(2));
-  }, [showWasher, showDryer, soilLevel, loads]);
+  }, [showWasher, showDryer, soilLevel, loads, wantsFolding]);
+
+  const serviceFee = useMemo(() => {
+    return Number((subtotal * SERVICE_FEE_PERCENT).toFixed(2));
+  }, [subtotal]);
+
+  const totalPrice = useMemo(() => {
+    return Number((subtotal + serviceFee).toFixed(2));
+  }, [subtotal, serviceFee]);
 
   const additionalLoadsPrice = (loads - 1) * PRICE_EXTRA_LOAD;
 
   useEffect(() => {
-    console.log("Price updated:", totalPrice, "Soil:", soilLevel, "Loads:", loads);
-  }, [totalPrice, soilLevel, loads]);
+    const params = new URLSearchParams(window.location.search);
+    const paymentIntentId = params.get('payment_intent');
+    const redirectStatus = params.get('redirect_status');
 
-  // createOrderMutation removed - moved to CheckoutForm
+    if (paymentIntentId && redirectStatus === 'succeeded') {
+      const storedOrderStr = sessionStorage.getItem('pending_laundry_order');
+      if (storedOrderStr) {
+        try {
+          const { orderData, totalPrice, localPickupLocation } = JSON.parse(storedOrderStr);
+          const settingsParts: string[] = [];
+          const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, wantsFolding, notes } = orderData;
+          
+          if (serviceType !== "dry") settingsParts.push(`Wash: ${washTemp}, ${washCycle}, Soil: ${soilLevel}`);
+          if (serviceType !== "wash") settingsParts.push(`Dry: ${dryCycle}`);
+          if (wantsFolding) settingsParts.push(`Folding: Yes (${loads} load${loads > 1 ? "s" : ""})`);
+          
+          const dateStr = selectedDate ? format(new Date(selectedDate), "PPPP") : "TBD";
+          settingsParts.push(`Scheduled for: ${dateStr} @ ${timeWindow}`);
+
+          apiRequest("POST", "/api/tasks", {
+            title: `Laundry Order — ${loads} load${loads > 1 ? "s" : ""}`,
+            description: `${settingsParts.join(". ")}. ${notes ? `Special Instructions: ${notes}` : ""}`.trim(),
+            category: "laundry",
+            budget: Math.round(totalPrice * 100),
+            location: localPickupLocation,
+            paymentStatus: "paid",
+            stripePaymentIntentId: paymentIntentId,
+          }).then(() => {
+             toast({ title: "Order Placed!", description: "A Tasker will be notified via USC housing services." });
+             queryClient.invalidateQueries({ queryKey: ["/api/tasks/my/posted"] });
+             sessionStorage.removeItem('pending_laundry_order');
+             window.history.replaceState({}, document.title, window.location.pathname);
+             navigate("/");
+          }).catch(() => {
+             toast({ title: "Task Creation Failed", description: "Payment was successful but we failed to save the order. Please contact support.", variant: "destructive" });
+             sessionStorage.removeItem('pending_laundry_order');
+             window.history.replaceState({}, document.title, window.location.pathname);
+          });
+        } catch (e) {
+          console.error("Failed to parse pending order", e);
+        }
+      }
+    }
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -125,19 +183,7 @@ export default function LaundryPage() {
             <WashingMachine className="w-5 h-5 text-violet-600" />
             <span className="font-bold text-lg" data-testid="text-laundry-title">Laundry Service</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={user?.profileImageUrl ?? undefined} />
-              <AvatarFallback className="text-xs">
-                {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-              </AvatarFallback>
-            </Avatar>
-            <a href="/api/logout">
-              <Button variant="ghost" size="icon" data-testid="button-logout">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </a>
-          </div>
+          <UserNav />
         </div>
       </header>
 
@@ -177,6 +223,28 @@ export default function LaundryPage() {
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-folding-service">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Shirt className="w-5 h-5 text-violet-600" />
+              <h3 className="font-semibold text-base">Folding Service</h3>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">$1.99 per load</span>
+              <div className="flex items-center gap-3">
+                <Label htmlFor="folding-switch" className="text-sm font-medium">
+                  {wantsFolding ? "Yes" : "No"}
+                </Label>
+                <Switch 
+                  id="folding-switch" 
+                  checked={wantsFolding} 
+                  onCheckedChange={setWantsFolding} 
+                />
               </div>
             </div>
           </CardContent>
@@ -265,7 +333,7 @@ export default function LaundryPage() {
                     <SelectContent>
                       {SOIL_LEVELS.map((s) => (
                         <SelectItem key={s} value={s} className="text-xs">
-                          {s} {s === "Medium" ? "(+$0.25)" : s === "Heavy" ? "(+$0.50)" : ""}
+                          {s}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -287,7 +355,7 @@ export default function LaundryPage() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5 text-sm">
                     <Thermometer className="w-3.5 h-3.5" />
-                    Settings ($1.25)
+                    Settings
                   </Label>
                   <Select value={dryCycle} onValueChange={setDryCycle}>
                     <SelectTrigger data-testid="select-dry-cycle">
@@ -308,19 +376,56 @@ export default function LaundryPage() {
         <Card data-testid="card-scheduling">
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-500" />
+              <CalendarIcon className="w-5 h-5 text-yellow-500" />
               <h3 className="font-semibold text-base">Schedule Order</h3>
             </div>
-            <Select value={schedule} onValueChange={setSchedule}>
-              <SelectTrigger data-testid="select-schedule">
-                <SelectValue placeholder="Select pickup time" />
-              </SelectTrigger>
-              <SelectContent>
-                {SCHEDULE_WINDOWS.map((win) => (
-                  <SelectItem key={win} value={win}>{win}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Pick a Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal h-10",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      fromDate={new Date()}
+                      toDate={addDays(new Date(), 7)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Time Window (1 Hour)</Label>
+                <Select value={timeWindow} onValueChange={setTimeWindow}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select window" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+                      "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+                      "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+                      "05:00 PM - 06:00 PM", "06:00 PM - 07:00 PM", "07:00 PM - 08:00 PM"
+                    ].map((win) => (
+                      <SelectItem key={win} value={win}>{win}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -337,49 +442,71 @@ export default function LaundryPage() {
           </CardContent>
         </Card>
 
-        <div className="rounded-lg border bg-violet-50 dark:bg-violet-950/20 p-4 space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Tasker Labor Fee</span>
-            <span>${PRICE_LABOR.toFixed(2)}</span>
+        <Collapsible className="rounded-lg border bg-violet-50 dark:bg-violet-950/20 p-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-lg" data-testid="text-total-price">${totalPrice.toFixed(2)}</span>
+              <Badge variant="outline" className="bg-white/50">Total</Badge>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-2">
+                <span className="text-xs mr-1">View Details</span>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </CollapsibleTrigger>
           </div>
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Service Fee</span>
-            <span>${PRICE_SERVICE.toFixed(2)}</span>
-          </div>
-          {showWasher && (
-            <>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Washer Base (1st load)</span>
-                <span>${PRICE_WASHER_BASE.toFixed(2)}</span>
-              </div>
-              {soilLevel !== "Light" && (
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Soil Level ({soilLevel})</span>
-                  <span>+${(soilLevel === "Medium" ? PRICE_SOIL_MEDIUM : PRICE_SOIL_HEAVY).toFixed(2)}</span>
-                </div>
-              )}
-            </>
-          )}
-          {showDryer && (
+
+          <CollapsibleContent className="space-y-2 pt-2 border-t">
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Dryer Base (1st load)</span>
-              <span>${PRICE_DRYER_BASE.toFixed(2)}</span>
+              <span>Tasker Labor Fee</span>
+              <span>${PRICE_LABOR.toFixed(2)}</span>
             </div>
-          )}
-          {loads > 1 && (
+            {showWasher && (
+              <>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Washer Base (1st load)</span>
+                  <span>${PRICE_WASHER_BASE.toFixed(2)}</span>
+                </div>
+                {soilLevel !== "Light" && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Soil Level ({soilLevel})</span>
+                    <span>+${(soilLevel === "Medium" ? PRICE_SOIL_MEDIUM : PRICE_SOIL_HEAVY).toFixed(2)}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {showDryer && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Dryer Base (1st load)</span>
+                <span>${PRICE_DRYER_BASE.toFixed(2)}</span>
+              </div>
+            )}
+            {loads > 1 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Additional Loads ({loads - 1})</span>
+                <span>+${additionalLoadsPrice.toFixed(2)}</span>
+              </div>
+            )}
+            {wantsFolding && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Folding Service ({loads} load{loads > 1 ? 's' : ''})</span>
+                <span>+${(loads * PRICE_FOLDING_LOAD).toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm text-muted-foreground font-medium pt-2 border-t border-dashed">
+              <span>Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
             <div className="flex justify-between text-sm text-muted-foreground font-medium">
-              <span>Additional Loads x {loads - 1}</span>
-              <span>+${additionalLoadsPrice.toFixed(2)}</span>
+              <span>Service Fee (18%)</span>
+              <span>${serviceFee.toFixed(2)}</span>
             </div>
-          )}
-          <div className="flex justify-between items-center border-t pt-2">
-            <span className="font-semibold text-sm">Upfront Total</span>
-            <span className="text-lg font-bold" data-testid="text-total-price">${totalPrice.toFixed(2)}</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground italic">
-            * Payment is processed upfront via Stripe/Apple Pay to confirm the order.
+          </CollapsibleContent>
+
+          <p className="text-[10px] text-muted-foreground italic mt-2">
+            * Payment is processed upfront via Stripe to confirm the order.
           </p>
-        </div>
+        </Collapsible>
 
         <Button
           className="w-full"
@@ -387,8 +514,11 @@ export default function LaundryPage() {
           onClick={async () => {
             try {
               const amountCents = Math.round(totalPrice * 100);
-              const { clientSecret: secret } = await apiRequest("POST", "/api/payments/create-payment-intent", { amount: amountCents }).then(r => r.json());
-              setClientSecret(secret);
+              const data = await apiRequest("POST", "/api/payments/create-payment-intent", { amount: amountCents }).then(r => r.json());
+              setClientSecret(data.clientSecret);
+              if (data.customerSessionClientSecret) {
+                setCustomerSessionClientSecret(data.customerSessionClientSecret);
+              }
               setCheckoutOpen(true);
             } catch (err) {
               toast({ title: "Error", description: "Failed to initialize payment. Please try again.", variant: "destructive" });
@@ -403,7 +533,7 @@ export default function LaundryPage() {
 
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="sm:max-w-md">
-          <StripeProvider clientSecret={clientSecret}>
+          <StripeProvider clientSecret={clientSecret} customerSessionClientSecret={customerSessionClientSecret}>
             <CheckoutForm
               onClose={() => setCheckoutOpen(false)}
               totalPrice={totalPrice}
@@ -414,7 +544,9 @@ export default function LaundryPage() {
                 washCycle,
                 soilLevel,
                 dryCycle,
-                schedule,
+                selectedDate,
+                timeWindow,
+                wantsFolding,
                 notes,
                 pickupLocation
               }}
@@ -440,16 +572,20 @@ function CheckoutForm({
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [localPickupLocation, setLocalPickupLocation] = useState(orderData.pickupLocation);
 
   const createOrderMutation = useMutation({
     mutationFn: async (paymentIntentId: string) => {
       const settingsParts: string[] = [];
-      const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, schedule, notes } = orderData;
+      const { serviceType, loads, washTemp, washCycle, soilLevel, dryCycle, selectedDate, timeWindow, wantsFolding, notes } = orderData;
 
       if (serviceType !== "dry") settingsParts.push(`Wash: ${washTemp}, ${washCycle}, Soil: ${soilLevel}`);
       if (serviceType !== "wash") settingsParts.push(`Dry: ${dryCycle}`);
-      settingsParts.push(`Schedule: ${schedule}`);
+      if (wantsFolding) settingsParts.push(`Folding: Yes (${loads} load${loads > 1 ? "s" : ""})`);
+      
+      const dateStr = selectedDate ? format(new Date(selectedDate), "PPPP") : "TBD";
+      settingsParts.push(`Scheduled for: ${dateStr} @ ${timeWindow}`);
 
       const res = await apiRequest("POST", "/api/tasks", {
         title: `Laundry Order — ${loads} load${loads > 1 ? "s" : ""}`,
@@ -462,7 +598,17 @@ function CheckoutForm({
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      if (saveAsDefault && localPickupLocation) {
+        try {
+          await apiRequest("PUT", "/api/auth/profile", {
+            building_name: localPickupLocation
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        } catch (err) {
+          console.error("Failed to update default building:", err);
+        }
+      }
       toast({ title: "Order Placed!", description: "A Tasker will be notified via USC housing services." });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/my/posted"] });
       onClose();
@@ -478,8 +624,18 @@ function CheckoutForm({
     if (!stripe || !elements || !localPickupLocation) return;
 
     setIsProcessing(true);
+
+    sessionStorage.setItem('pending_laundry_order', JSON.stringify({
+      orderData,
+      totalPrice,
+      localPickupLocation
+    }));
+
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
+      confirmParams: {
+        return_url: window.location.origin + "/laundry",
+      },
       redirect: 'if_required',
     });
 
@@ -516,18 +672,34 @@ function CheckoutForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="pickup-location">Confirm USC On-Campus Housing *</Label>
-        <Select value={localPickupLocation} onValueChange={setLocalPickupLocation}>
-          <SelectTrigger id="pickup-location">
-            <SelectValue placeholder="Select building..." />
-          </SelectTrigger>
-          <SelectContent>
-            {USC_HOUSING.map((building) => (
-              <SelectItem key={building} value={building}>{building}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="pickup-location">Confirm USC On-Campus Housing *</Label>
+          <Select value={localPickupLocation} onValueChange={setLocalPickupLocation}>
+            <SelectTrigger id="pickup-location">
+              <SelectValue placeholder="Select building..." />
+            </SelectTrigger>
+            <SelectContent>
+              {USC_BUILDINGS.map((building) => (
+                <SelectItem key={building} value={building}>{building}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center space-x-2 px-1">
+          <Checkbox 
+            id="saveDefault" 
+            checked={saveAsDefault} 
+            onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
+          />
+          <label
+            htmlFor="saveDefault"
+            className="text-xs font-semibold leading-none cursor-pointer text-muted-foreground"
+          >
+            Save as my default building in settings
+          </label>
+        </div>
       </div>
 
       <div className="p-3 border rounded-lg bg-white">

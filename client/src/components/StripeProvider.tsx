@@ -8,22 +8,29 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
 export const StripeProvider: React.FC<{
     clientSecret: string | null;
+    customerSessionClientSecret?: string | null;
     children: React.ReactNode;
-}> = ({ clientSecret, children }) => {
-    if (!clientSecret) return <>{children}</>;
+}> = ({ clientSecret, customerSessionClientSecret, children }) => {
+    if (!clientSecret) return null;
+
+    const options: any = {
+        clientSecret,
+        appearance: {
+            theme: 'stripe',
+            variables: {
+                colorPrimary: '#7c3aed',
+            },
+        }
+    };
+
+    if (customerSessionClientSecret) {
+        options.customerSessionClientSecret = customerSessionClientSecret;
+    }
 
     return (
         <Elements
             stripe={stripePromise}
-            options={{
-                clientSecret,
-                appearance: {
-                    theme: 'stripe',
-                    variables: {
-                        colorPrimary: '#7c3aed',
-                    },
-                }
-            }}
+            options={options}
         >
             {children}
         </Elements>
