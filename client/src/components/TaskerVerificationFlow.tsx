@@ -22,9 +22,18 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
     mutationFn: async (sessionId?: string) => {
       // First update the user profile with is_us_citizen
       await apiRequest("PUT", "/api/auth/profile", { is_us_citizen: isUsCitizen });
-      // In a real app we'd rely on a webhook from Stripe Identity to verify.
-      // We pass the sessionId to confirm it on the server.
-      const res = await apiRequest("POST", "/api/auth/verify-tasker", { sessionId });
+      
+      const res = await fetch("/api/auth/verify-tasker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Verification failed");
+      }
+
       return res.json();
     },
     onSuccess: () => {
@@ -35,8 +44,12 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
         onSuccess();
       }, 2000);
     },
-    onError: () => {
-      toast({ title: "Verification Failed", description: "Something went wrong. Please try again.", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ 
+        title: "Verification Incomplete", 
+        description: error.message, 
+        variant: "destructive" 
+      });
       setStep("form");
     }
   });

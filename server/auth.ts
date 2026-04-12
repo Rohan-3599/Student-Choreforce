@@ -290,9 +290,15 @@ export function setupAuth(app: Express) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-01-27.acacia" as any });
         const session = await stripe.identity.verificationSessions.retrieve(sessionId);
         
+        if (session.status === 'processing') {
+          return res.status(400).json({ 
+            message: "Stripe is currently verifying your documents. This process usually takes 1-2 minutes. Please wait and try clicking 'Verify' again shortly." 
+          });
+        }
+
         if (session.status !== 'verified') {
           return res.status(400).json({ 
-            message: `Verification not yet successful. Status: ${session.status}. Please complete the Stripe flow.` 
+            message: `Verification not yet successful. Status: ${session.status}. Please make sure you completed the entire Stripe identity flow.` 
           });
         }
       } else if (!process.env.STRIPE_SECRET_KEY) {
