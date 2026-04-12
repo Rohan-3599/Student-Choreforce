@@ -3,6 +3,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcrypt";
+import Stripe from "stripe";
 import sgMail from "@sendgrid/mail";
 import { users, type User } from "@shared/models/auth";
 import { db } from "./db";
