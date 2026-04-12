@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Check, X, ShieldCheck } from "lucide-react";
 
 const languagesOptions = ["English", "Chinese", "Spanish"];
-const genders = ["Men", "Women", "No preference"];
+const genders = ["Man", "Woman", "Prefer Not to Say"];
 
 export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => void; onSuccess: (email: string) => void }) {
   const [email, setEmail] = useState("");
@@ -21,7 +21,6 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
   const [lastName, setLastName] = useState("");
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [gender, setGender] = useState(genders[2]);
-  const [uscId, setUscId] = useState("");
   const [languages, setLanguages] = useState<string[]>(["English"]);
   const [error, setError] = useState("");
 
@@ -62,8 +61,7 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
         first_name: firstName, 
         last_name: lastName,
         birth_date: birthDate ? birthDate.toISOString().slice(0, 10) : null,
-        gender: gender.toLowerCase().replace(" ", "_"),
-        usc_id: uscId,
+        gender: gender.toLowerCase().replaceAll(" ", "_"),
         languages
       };
       await register(payload);
@@ -182,10 +180,7 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="uscId">USC ID Number (Optional)</Label>
-              <Input id="uscId" placeholder="1234567890" value={uscId} onChange={e => setUscId(e.target.value)} />
-            </div>
+      
 
             <div className="space-y-3 pt-2 border-t mt-4">
               <Label className="font-semibold text-sm">Languages Spoken</Label>

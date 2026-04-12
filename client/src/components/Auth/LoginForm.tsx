@@ -23,7 +23,7 @@ export default function LoginForm({ onToggle, onForgot, onRequireVerification }:
       if (err?.message?.includes("verify your email")) {
         onRequireVerification(email);
       } else {
-        setError(err?.message || "Login failed");
+        setError("Invalid email or password. Please try again.");
       }
     }
   };

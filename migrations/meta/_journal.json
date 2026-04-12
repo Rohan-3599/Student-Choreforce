@@ -8,6 +8,13 @@
       "when": 1772373581884,
       "tag": "0000_big_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776018342086,
+      "tag": "0001_lucky_alice",
+      "breakpoints": true
     }
   ]
 }
