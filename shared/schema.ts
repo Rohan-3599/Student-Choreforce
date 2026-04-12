@@ -7,7 +7,6 @@ export * from "./models/auth";
 import { users } from "./models/auth";
 
 export const taskCategoryEnum = pgEnum("task_category", [
-  "grocery_shopping",
   "dorm_cleaning",
   "laundry",
   "other",
@@ -36,15 +35,6 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "failed",
 ]);
 
-export const groceryItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  price: z.number(),
-  store: z.string(),
-  quantity: z.number().min(1).default(1),
-});
-
-export type GroceryItemSelection = z.infer<typeof groceryItemSchema>;
 
 export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -56,7 +46,7 @@ export const tasks = pgTable("tasks", {
   location: text("location").notNull(),
   posterId: varchar("poster_id").notNull().references(() => users.id),
   claimerId: varchar("claimer_id").references(() => users.id),
-  groceryItems: jsonb("grocery_items"),
+  photos: jsonb("photos"),
   paymentMethod: paymentMethodEnum("payment_method"),
   paymentStatus: paymentStatusEnum("payment_status").default("pending"),
   paypalOrderId: text("paypal_order_id"),
@@ -112,14 +102,14 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   location: z.string().min(2, "Location is required"),
-  groceryItems: z.array(groceryItemSchema).optional(),
   paymentMethod: z.enum(["paypal", "venmo", "zelle", "cashapp", "credit_card", "apple_pay"]).optional(),
   stripePaymentIntentId: z.string().optional(),
+  photos: z.any().optional(),
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
-export type TaskCategory = "grocery_shopping" | "dorm_cleaning" | "laundry" | "other";
+export type TaskCategory = "dorm_cleaning" | "laundry" | "other";
 export type TaskStatus = "open" | "claimed" | "in_progress" | "completed" | "cancelled";
 export type PaymentMethod = "paypal" | "venmo" | "zelle" | "cashapp" | "credit_card" | "apple_pay";
 export type PaymentStatus = "pending" | "paid" | "failed";

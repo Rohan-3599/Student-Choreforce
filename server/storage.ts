@@ -4,7 +4,7 @@ import { db } from "./db";
 import { eq, desc, and, asc, ne } from "drizzle-orm";
 
 export interface IStorage {
-  getTasks(category?: string, excludePosterId?: string): Promise<(Task & { poster?: User | null })[]>;
+  getTasks(category?: string, excludePosterId?: string, gender?: string, building?: string, language?: string): Promise<(Task & { poster?: User | null })[]>;
   getTask(id: string): Promise<(Task & { poster?: User | null; claimer?: User | null }) | undefined>;
   createTask(task: InsertTask & { posterId: string }): Promise<Task>;
   claimTask(taskId: string, claimerId: string): Promise<Task | undefined>;
@@ -18,7 +18,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getTasks(category?: string, excludePosterId?: string): Promise<(Task & { poster?: User | null })[]> {
+  async getTasks(category?: string, excludePosterId?: string, gender?: string, building?: string, language?: string): Promise<(Task & { poster?: User | null })[]> {
     const conditions = and(
       eq(tasks.status, "open"),
       eq(tasks.paymentStatus, "paid"),
@@ -31,7 +31,20 @@ export class DatabaseStorage implements IStorage {
       .where(conditions)
       .orderBy(desc(tasks.createdAt));
 
-    return this.attachPosters(taskRows);
+    let attached = await this.attachPosters(taskRows);
+
+    if (gender) {
+      attached = attached.filter(t => t.poster?.gender === gender);
+    }
+    if (building) {
+      const lowerBuilding = building.toLowerCase();
+      attached = attached.filter(t => t.location.toLowerCase().includes(lowerBuilding));
+    }
+    if (language) {
+      attached = attached.filter(t => t.poster?.languages?.includes(language));
+    }
+
+    return attached;
   }
 
   async getTask(id: string): Promise<(Task & { poster?: User | null; claimer?: User | null }) | undefined> {

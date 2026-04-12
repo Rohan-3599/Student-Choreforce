@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import LoginForm from "@/components/Auth/LoginForm";
 import SignupForm from "@/components/Auth/SignupForm";
+import ForgotPassword from "@/components/Auth/ForgotPassword";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgot, setIsForgot] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -52,14 +54,19 @@ export default function AuthPage() {
                />
              </div>
           </div>
+        ) : isForgot ? (
+          <ForgotPassword
+             onBack={() => { setIsForgot(false); setIsLogin(true); }}
+          />
         ) : isLogin ? (
           <LoginForm 
-            onToggle={() => setIsLogin(false)} 
+            onToggle={() => { setIsLogin(false); setIsForgot(false); }} 
+            onForgot={() => { setIsForgot(true); setIsLogin(false); }}
             onRequireVerification={(email) => setUnverifiedEmail(email)} 
           />
         ) : (
           <SignupForm 
-            onToggle={() => setIsLogin(true)} 
+            onToggle={() => { setIsLogin(true); setIsForgot(false); }} 
             onSuccess={(email) => setUnverifiedEmail(email)} 
           />
         )}

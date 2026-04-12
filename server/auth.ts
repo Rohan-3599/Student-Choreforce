@@ -241,15 +241,66 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
+  app.put("/api/auth/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    try {
+      const { 
+        building_name, gender_preference, languages, 
+        tasker_building_name, tasker_gender_preference, tasker_languages,
+        profileImageUrl 
+      } = req.body;
+      const currentUser = req.user as User;
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          building_name: building_name !== undefined ? building_name : currentUser.building_name,
+          gender_preference: gender_preference !== undefined ? gender_preference : currentUser.gender_preference,
+          languages: languages !== undefined ? languages : currentUser.languages,
+          taskerBuildingName: tasker_building_name !== undefined ? tasker_building_name : currentUser.taskerBuildingName,
+          taskerGenderPreference: tasker_gender_preference !== undefined ? tasker_gender_preference : currentUser.taskerGenderPreference,
+          taskerLanguages: tasker_languages !== undefined ? tasker_languages : currentUser.taskerLanguages,
+          profileImageUrl: profileImageUrl !== undefined ? profileImageUrl : currentUser.profileImageUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, currentUser.id))
+        .returning();
+
+      return res.status(200).json(updatedUser);
+    } catch (err) {
+      console.error("Profile update error:", err);
+      return res.status(500).json({ message: "Profile update failed." });
+    }
+  });
+
   app.post("/api/auth/verify-tasker", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     try {
-      // In a real app we'd trigger a Stripe Identity flow or manual review here.
-      // For MVP, we approve the verification process immediately.
+      const { sessionId } = req.body;
       const currentUser = req.user as User;
-      
+
+      // In a real staging/prod app, we'd also listen for verification_session.verified webhooks.
+      // For this API-driven flow, we retrieve the session status to confirm.
+      if (sessionId && process.env.STRIPE_SECRET_KEY) {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-01-27.acacia" as any });
+        const session = await stripe.identity.verificationSessions.retrieve(sessionId);
+        
+        if (session.status !== 'verified') {
+          return res.status(400).json({ 
+            message: `Verification not yet successful. Status: ${session.status}. Please complete the Stripe flow.` 
+          });
+        }
+      } else if (!process.env.STRIPE_SECRET_KEY) {
+        // Fallback for local dev without Stripe keys (simulated success)
+        console.log("Stripe not configured, simulating verification success for dev.");
+      } else if (!sessionId) {
+        return res.status(400).json({ message: "No verification session ID provided." });
+      }
+
       const [updatedUser] = await db
         .update(users)
         .set({ isTaskerVerified: true })
@@ -260,6 +311,96 @@ export function setupAuth(app: Express) {
     } catch (err) {
       console.error("Tasker verification error:", err);
       return res.status(500).json({ message: "Tasker verification failed." });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email is required" });
+
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      if (!user) {
+        // Return 200 even if user not found to prevent email enumeration
+        return res.status(200).json({ message: "If an account with that email exists, we sent a password reset link." });
+      }
+
+      const crypto = await import("crypto");
+      const token = crypto.randomBytes(32).toString("hex");
+      const hashedToken = await hashPassword(token); // Hash the token for storage
+      const expires = new Date(Date.now() + 3600000); // 1 hour completely
+
+      await db.update(users)
+        .set({ reset_password_token: hashedToken, reset_password_expires: expires })
+        .where(eq(users.id, user.id));
+
+      const resetUrl = `${req.protocol}://${req.get("host")}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+      const sgKey = process.env.SENDGRID_API_KEY;
+
+      if (sgKey && sgKey.startsWith("SG.")) {
+        try {
+          await sgMail.send({
+            to: email,
+            from: process.env.EMAIL_FROM || "noreply@choreforce.com",
+            subject: "Reset your Student Choreforce password",
+            html: `
+              <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;">
+                <h2 style="color:#4f46e5;">Password Reset</h2>
+                <p>You requested a password reset. Click the button below to set a new password. This link expires in 1 hour.</p>
+                <a href="${resetUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">Reset Password</a>
+                <p style="color:#888;font-size:12px;">If you didn't request a password reset, you can safely ignore this email.</p>
+              </div>
+            `,
+          });
+        } catch (emailErr) {
+          console.warn("SendGrid email failed:", emailErr);
+        }
+      } else {
+        console.log(`[DEV] Password Reset link for ${email}: ${resetUrl}`);
+      }
+
+      res.status(200).json({ message: "If an account with that email exists, we sent a password reset link." });
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      res.status(500).json({ message: "Something went wrong." });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email, token, newPassword } = req.body;
+      if (!email || !token || !newPassword) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      if (!user || !user.reset_password_token || !user.reset_password_expires) {
+        return res.status(400).json({ message: "Invalid or expired reset link." });
+      }
+
+      if (new Date() > user.reset_password_expires) {
+        return res.status(400).json({ message: "Reset link has expired." });
+      }
+
+      const isMatch = await comparePasswords(token, user.reset_password_token);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid or expired reset link." });
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+
+      await db.update(users)
+        .set({ 
+          password_hash: hashedPassword, 
+          reset_password_token: null, 
+          reset_password_expires: null 
+        })
+        .where(eq(users.id, user.id));
+
+      res.status(200).json({ message: "Password has been successfully reset. You can now log in." });
+    } catch (err) {
+      console.error("Reset password error:", err);
+      res.status(500).json({ message: "Something went wrong." });
     }
   });
 }

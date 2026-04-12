@@ -11,7 +11,7 @@ export const StripeProvider: React.FC<{
     customerSessionClientSecret?: string | null;
     children: React.ReactNode;
 }> = ({ clientSecret, customerSessionClientSecret, children }) => {
-    if (!clientSecret) return <>{children}</>;
+    if (!clientSecret) return null;
 
     const options: any = {
         clientSecret,

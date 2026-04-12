@@ -123,11 +123,38 @@ router.post(
         clientSecret: intent.client_secret,
         customerSessionClientSecret: customerSession.client_secret
       });
-    } catch (e: any) {
-      console.error("Stripe error:", e);
-      res.status(500).json({ error: e.message });
+    } catch (err: any) {
+      console.error("Payment intent error:", err);
+      res.status(500).json({ error: err.message });
     }
   },
+);
+
+router.post(
+  "/create-verification-session",
+  requireAuth,
+  requireStripe,
+  async (req: any, res: any) => {
+    try {
+      const stripe = getStripe();
+      const userId = req.user.id;
+      
+      const verificationSession = await stripe.identity.verificationSessions.create({
+        type: 'document',
+        metadata: {
+          userId: userId,
+        },
+      });
+
+      res.json({ 
+        clientSecret: verificationSession.client_secret,
+        sessionId: verificationSession.id
+      });
+    } catch (e: any) {
+      console.error("Stripe Identity error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  }
 );
 
 export default router;

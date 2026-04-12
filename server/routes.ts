@@ -13,7 +13,6 @@ import {
 import paymentsRouter from "./controllers/payments";
 
 const CATEGORY_PRICES: Record<string, number | undefined> = {
-  grocery_shopping: undefined,
   dorm_cleaning: undefined,
   laundry: undefined,
   other: undefined,
@@ -36,8 +35,11 @@ export async function registerRoutes(
   app.get("/api/tasks", async (req: any, res) => {
     try {
       const category = req.query.category as string | undefined;
+      const gender = req.query.gender as string | undefined;
+      const building = req.query.building as string | undefined;
+      const language = req.query.language as string | undefined;
       const excludePosterId = req.isAuthenticated() ? req.user?.id : undefined;
-      const tasks = await storage.getTasks(category, excludePosterId);
+      const tasks = await storage.getTasks(category, excludePosterId, gender, building, language);
       res.json(tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);

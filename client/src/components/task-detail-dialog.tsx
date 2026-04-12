@@ -3,12 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Clock, DollarSign, User, ShoppingCart, CreditCard } from "lucide-react";
+import { MapPin, Clock, DollarSign, User, CreditCard } from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
-import { STORE_LABELS } from "@/lib/grocery-catalog";
 import { TaskChat } from "@/components/task-chat";
 import { PaymentMethodBadge } from "@/components/payment-method-selector";
-import type { Task, GroceryItemSelection, PaymentMethod } from "@shared/schema";
+import type { Task, PaymentMethod } from "@shared/schema";
 import type { User as AuthUser } from "@shared/models/auth";
 import { formatDistanceToNow } from "date-fns";
 
@@ -48,9 +47,6 @@ export function TaskDetailDialog({
   const canComplete = task.status === "claimed" && (isOwner || isClaimer);
   const canCancel = task.status === "open" && isOwner;
 
-  const groceryItems = (task.groceryItems as GroceryItemSelection[] | null) ?? [];
-  const hasGroceryItems = task.category === "grocery_shopping" && groceryItems.length > 0;
-  const itemsTotal = groceryItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,37 +104,6 @@ export function TaskDetailDialog({
             </div>
           )}
 
-          {hasGroceryItems && (
-            <div className="border rounded-md p-3 space-y-2" data-testid="section-grocery-items">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
-                  <span className="font-semibold text-sm">Shopping List</span>
-                </div>
-                <Badge variant="secondary" data-testid="badge-items-total">
-                  {groceryItems.reduce((s, i) => s + i.quantity, 0)} items · ${itemsTotal.toFixed(2)}
-                </Badge>
-              </div>
-              <ScrollArea className="max-h-[150px]">
-                <div className="space-y-1 pr-2">
-                  {groceryItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1 text-sm" data-testid={`detail-grocery-item-${idx}`}>
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="truncate">{item.name}</span>
-                        <Badge variant="outline" className="text-[10px] shrink-0">
-                          {STORE_LABELS[item.store] ?? item.store}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-muted-foreground">×{item.quantity}</span>
-                        <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
 
           {task.createdAt && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

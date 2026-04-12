@@ -9,10 +9,11 @@ import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import RequesterPage from "@/pages/requester";
 import TaskerPage from "@/pages/tasker";
-import ShopPage from "@/pages/shop";
 import LaundryPage from "@/pages/laundry";
 import CleaningPage from "@/pages/cleaning";
 import CustomTaskPage from "@/pages/custom-task";
+import ProfilePage from "@/pages/profile";
+import ResetPasswordPage from "@/pages/reset-password";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -34,6 +35,7 @@ function Router() {
   if (!user) {
     return (
       <Switch>
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/" component={AuthPage} />
         <Route path="/signup" component={AuthPage} />
         <Route component={AuthPage} />
@@ -45,11 +47,11 @@ function Router() {
     <Switch>
       <Route path="/" component={RequesterPage} />
       <Route path="/tasker" component={TaskerPage} />
-      <Route path="/shop" component={ShopPage} />
       <Route path="/laundry" component={LaundryPage} />
       <Route path="/cleaning" component={CleaningPage} />
       <Route path="/custom" component={CustomTaskPage} />
       <Route path="/payments" component={PaymentMethodsManager} />
+      <Route path="/profile" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>
   );

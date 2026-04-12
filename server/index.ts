@@ -92,7 +92,16 @@ app.use((req, res, next) => {
   // Run passive migrations for any newly introduced columns seamlessly on boot
   // This guarantees Replit production deployments never fail due to missing columns
   try {
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tasker_verified boolean NOT NULL DEFAULT false;`);
+    await db.execute(sql`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS is_tasker_verified boolean NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS is_us_citizen boolean NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS building_name varchar(128),
+      ADD COLUMN IF NOT EXISTS gender_preference varchar(32),
+      ADD COLUMN IF NOT EXISTS language_preference varchar(64),
+      ADD COLUMN IF NOT EXISTS reset_password_token varchar(128),
+      ADD COLUMN IF NOT EXISTS reset_password_expires timestamp;
+    `);
     log("Verified users schema is up-to-date");
   } catch (err) {
     console.error("Failed to verify database schema:", err);

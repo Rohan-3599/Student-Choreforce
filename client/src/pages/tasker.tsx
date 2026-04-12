@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, Send, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { Zap, ClipboardList, Send, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { UserNav } from "@/components/user-nav";
 import { TaskerVerificationFlow } from "@/components/TaskerVerificationFlow";
 import type { Task, TaskCategory } from "@shared/schema";
 import type { User } from "@shared/models/auth";
@@ -22,10 +23,18 @@ export default function TaskerPage() {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | "all">("all");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string>(user?.taskerGenderPreference || "");
+  const [buildingFilter, setBuildingFilter] = useState<string>(user?.taskerBuildingName || "");
+  const [languageFilter, setLanguageFilter] = useState<string>(user?.taskerLanguages?.[0] || "");
 
-  const categoryParam = selectedCategory !== "all" ? `?category=${selectedCategory}` : "";
+  let queryUrl = `/api/tasks?`;
+  if (selectedCategory !== "all") queryUrl += `category=${selectedCategory}&`;
+  if (genderFilter) queryUrl += `gender=${genderFilter}&`;
+  if (buildingFilter) queryUrl += `building=${encodeURIComponent(buildingFilter)}&`;
+  if (languageFilter) queryUrl += `language=${encodeURIComponent(languageFilter)}&`;
+
   const { data: allTasks, isLoading: allLoading } = useQuery<(Task & { poster?: User | null })[]>({
-    queryKey: [`/api/tasks${categoryParam}`],
+    queryKey: [queryUrl],
   });
 
   const { data: claimedTasks, isLoading: claimedLoading } = useQuery<(Task & { poster?: User | null })[]>({
@@ -109,20 +118,7 @@ export default function TaskerPage() {
                 Switch to Requester
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.profileImageUrl ?? undefined} />
-                <AvatarFallback className="text-xs">
-                  {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <button 
-                onClick={() => logout()}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            <UserNav />
           </div>
         </div>
       </header>
@@ -155,7 +151,16 @@ export default function TaskerPage() {
 
           <TabsContent value="browse" className="mt-6 space-y-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <TaskFilters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+              <TaskFilters 
+                selectedCategory={selectedCategory} 
+                onCategoryChange={setSelectedCategory} 
+                genderFilter={genderFilter}
+                onGenderChange={setGenderFilter}
+                buildingFilter={buildingFilter}
+                onBuildingChange={setBuildingFilter}
+                languageFilter={languageFilter}
+                onLanguageChange={setLanguageFilter}
+              />
               <p className="text-sm text-muted-foreground" data-testid="text-task-count">
                 {openTasks.length} available {openTasks.length === 1 ? "task" : "tasks"}
               </p>

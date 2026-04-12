@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, LogOut, ClipboardList, HardHat, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { Zap, ClipboardList, HardHat, WashingMachine, SprayCan, PenLine } from "lucide-react";
+import { UserNav } from "@/components/user-nav";
 import type { Task, InsertTask } from "@shared/schema";
 import type { User } from "@shared/models/auth";
 import { Link } from "wouter";
@@ -102,20 +103,7 @@ export default function RequesterPage() {
                 Switch to Tasker
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user?.profileImageUrl ?? undefined} />
-                <AvatarFallback className="text-xs">
-                  {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <button 
-                onClick={() => logout()}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            <UserNav />
           </div>
         </div>
       </header>

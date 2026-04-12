@@ -8,13 +8,6 @@ export const CATEGORY_CONFIG: Record<TaskCategory, {
   bgColor: string;
   price: number;
 }> = {
-  grocery_shopping: {
-    label: "Grocery Shopping",
-    icon: ShoppingCart,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
-    price: 0,
-  },
   dorm_cleaning: {
     label: "Dorm Cleaning",
     icon: SprayCan,
@@ -48,3 +41,46 @@ export const STATUS_CONFIG: Record<TaskStatus, {
   completed: { label: "Completed", variant: "outline" },
   cancelled: { label: "Cancelled", variant: "destructive" },
 };
+
+export const USC_BUILDINGS = [
+  "Birnkrant Residential College",
+  "New North Residential College",
+  "Marks Tower",
+  "Pardee Tower",
+  "Webb Tower",
+  "Trojan Hall",
+  "Marks Hall",
+  "Parkside Arts & Humanities",
+  "Parkside IRC",
+  "Fluor Tower",
+  "Cardinal Gardens",
+  "Century Apartments",
+  "La Sorbonne",
+  "Troy East",
+  "Troy Hall",
+  "Nemirovsky Residential College",
+  "Bohnett Residential College",
+  "McMorrow Residential College",
+  "Cowlings Residential College",
+  "Ilium Residential College",
+  "Cale and Irani Residential College",
+  "Annenberg House",
+  "University Village",
+  "The Lorenzo",
+  "The Gateway",
+  "West 27th",
+  "Tuscany",
+  "Hub Los Angeles",
+  "Shrine Collection",
+  "The Icon",
+  "The Element",
+  "The Victory",
+  "Off-Campus House",
+  "Other / Off-Campus Apartment"
+].sort();
+
+export const POPULAR_LANGUAGES = [
+  "Chinese",
+  "English",
+  "Spanish"
+].sort();

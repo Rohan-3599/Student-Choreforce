@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
-export default function LoginForm({ onToggle, onRequireVerification }: { onToggle: () => void; onRequireVerification: (email: string) => void }) {
+export default function LoginForm({ onToggle, onForgot, onRequireVerification }: { onToggle: () => void; onForgot: () => void; onRequireVerification: (email: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -59,6 +59,9 @@ export default function LoginForm({ onToggle, onRequireVerification }: { onToggl
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
+                <Button variant="ghost" className="p-0 h-auto text-xs font-normal text-primary hover:bg-transparent hover:underline" onClick={(e) => { e.preventDefault(); onForgot(); }}>
+                  Forgot password?
+                </Button>
               </div>
               <Input
                 id="password"

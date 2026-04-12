@@ -4,23 +4,27 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Loader2, ShieldCheck, CheckCircle2, AlertTriangle, Fingerprint } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ShieldCheck, UploadCloud, FileCheck, CheckCircle2, AlertTriangle } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
 
 export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<"intro" | "form" | "upload" | "processing" | "success">("intro");
-  const [dob, setDob] = useState<Date | null>(null);
-  const [status, setStatus] = useState<string>("");
-  const [file, setFile] = useState<File | null>(null);
+  const [step, setStep] = useState<"intro" | "form" | "processing" | "success">("intro");
+  const [isUsCitizen, setIsUsCitizen] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isProcessingStripe, setIsProcessingStripe] = useState(false);
 
   const verifyMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/auth/verify-tasker");
+    mutationFn: async (sessionId?: string) => {
+      // First update the user profile with is_us_citizen
+      await apiRequest("PUT", "/api/auth/profile", { is_us_citizen: isUsCitizen });
+      // In a real app we'd rely on a webhook from Stripe Identity to verify.
+      // We pass the sessionId to confirm it on the server.
+      const res = await apiRequest("POST", "/api/auth/verify-tasker", { sessionId });
       return res.json();
     },
     onSuccess: () => {
@@ -37,12 +41,32 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
     }
   });
 
-  const handleSimulatedSubmit = () => {
-    setStep("processing");
-    // Simulate real-world 3rd party processing delay
-    setTimeout(() => {
-      verifyMutation.mutate();
-    }, 2500);
+  const handleStartStripeIdentity = async () => {
+    try {
+      setIsProcessingStripe(true);
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe not loaded");
+
+      // We explicitly create a verification session
+      const res = await apiRequest("POST", "/api/payments/create-verification-session", {});
+      const { clientSecret, sessionId } = await res.json();
+
+      if (!clientSecret) throw new Error("Failed to create Identity session");
+
+      const { error } = await (stripe as any).verifyIdentity(clientSecret);
+
+      if (error) {
+        toast({ title: "Verification Failed", description: error.message, variant: "destructive" });
+        setIsProcessingStripe(false);
+      } else {
+        // Success! Set verified state
+        setStep("processing");
+        verifyMutation.mutate(sessionId);
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to start identity verification", variant: "destructive" });
+      setIsProcessingStripe(false);
+    }
   };
 
   return (
@@ -58,7 +82,7 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
               </div>
               <CardTitle className="text-2xl font-extrabold tracking-tight">Become a Tasker</CardTitle>
               <CardDescription className="text-base">
-                To keep our community safe and compliant, we need to quickly verify your identity before you can start earning.
+                To keep our community safe and compliant, we need to quickly verify your identity via Stripe before you can start earning.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -67,15 +91,11 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    Must be exactly 18 years or older.
+                    Must be a US Citizen.
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    Must be a US Citizen or have valid Work Authorization.
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    Provide a valid Government ID.
+                    Provide a valid Government ID (Driver License or Passport).
                   </li>
                 </ul>
               </div>
@@ -90,93 +110,54 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
           <>
             <CardHeader>
               <CardTitle>Identity Information</CardTitle>
-              <CardDescription>Enter your details exactly as they appear on your ID.</CardDescription>
+              <CardDescription>Confirm your eligibility and prepare your ID for facial scan verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Date of Birth</Label>
-                <DatePicker
-                  selected={dob}
-                  onChange={(d: Date | null) => setDob(d)}
-                  dateFormat="MM/dd/yyyy"
-                  className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-background"
-                  placeholderText="MM/DD/YYYY"
+              
+              <div className="flex items-start space-x-3 p-4 border rounded-md bg-muted/20">
+                <Checkbox
+                  id="us-citizen"
+                  checked={isUsCitizen}
+                  onCheckedChange={(checked) => setIsUsCitizen(!!checked)}
                 />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="us-citizen" className="peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-semibold">
+                    I am a US Citizen
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Required to perform tasks and receive payouts.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Citizenship / Work Auth Status</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select your status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="us_citizen">US Citizen</SelectItem>
-                    <SelectItem value="green_card">Permanent Resident (Green Card)</SelectItem>
-                    <SelectItem value="work_visa">Valid Work Visa</SelectItem>
-                    <SelectItem value="other">Other Work Authorization</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-               {(!dob || !status) && (
-                <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Please fill out all fields to continue.
-                </p>
-              )}
-            </CardContent>
-            <CardFooter className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep("intro")} className="w-full">Back</Button>
-              <Button 
-                onClick={() => setStep("upload")} 
-                className="w-full"
-                disabled={!dob || !status}
-              >
-                Next
-              </Button>
-            </CardFooter>
-          </>
-        )}
 
-        {step === "upload" && (
-          <>
-            <CardHeader>
-              <CardTitle>Upload Government Proof</CardTitle>
-              <CardDescription>Please provide a clear scan or photo of your Driver's License, State ID, or Passport.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-input rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-secondary/20 transition-colors cursor-pointer relative">
-                 <input 
-                   type="file" 
-                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                   accept="image/*,.pdf"
-                   onChange={(e) => {
-                     if (e.target.files && e.target.files.length > 0) {
-                       setFile(e.target.files[0]);
-                     }
-                   }}
-                 />
-                 {file ? (
-                   <>
-                     <FileCheck className="w-10 h-10 text-green-500 mb-3" />
-                     <p className="text-sm font-semibold">{file.name}</p>
-                     <p className="text-xs text-muted-foreground mt-1">Click to replace</p>
-                   </>
-                 ) : (
-                   <>
-                     <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
-                     <p className="text-sm font-semibold">Click or drag file to upload</p>
-                     <p className="text-xs text-muted-foreground mt-1">Supports JPG, PNG, PDF (Max 10MB)</p>
-                   </>
-                 )}
+              <div className="flex items-start space-x-3 p-4 border rounded-md bg-muted/20">
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="terms" className="peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-semibold">
+                    I agree to the Terms of Service
+                  </Label>
+                </div>
               </div>
+               
             </CardContent>
-            <CardFooter className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep("form")} className="w-full">Back</Button>
+            <CardFooter className="flex flex-col gap-3">
               <Button 
-                onClick={handleSimulatedSubmit} 
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                disabled={!file || verifyMutation.isPending}
+                onClick={handleStartStripeIdentity} 
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!isUsCitizen || !agreedToTerms || isProcessingStripe}
               >
-                Submit Application
+                {isProcessingStripe ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing Scanner...</>
+                ) : (
+                  <><Fingerprint className="mr-2 h-4 w-4" /> Verify Identity with Stripe</>
+                )}
+              </Button>
+              <Button variant="ghost" onClick={() => setStep("intro")} className="w-full text-xs" disabled={isProcessingStripe}>
+                Back
               </Button>
             </CardFooter>
           </>
@@ -186,8 +167,8 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
           <CardContent className="py-24 flex flex-col items-center justify-center space-y-4 text-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
             <div className="space-y-1">
-              <h3 className="text-xl font-bold">Verifying Identity</h3>
-              <p className="text-sm text-muted-foreground">Scanning documents and verifying eligibility...</p>
+              <h3 className="text-xl font-bold">Wrapping up</h3>
+              <p className="text-sm text-muted-foreground">Saving your verification details...</p>
             </div>
           </CardContent>
         )}

@@ -12,9 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { USC_BUILDINGS } from "@/lib/constants";
 import { Switch } from "@/components/ui/switch";
 import {
-  WashingMachine, Zap, LogOut, ArrowLeft, Minus, Plus,
+  WashingMachine, Zap, ArrowLeft, Minus, Plus,
   CheckCircle, Droplets, Wind, Thermometer, RotateCw, Shirt,
   ChevronDown, ChevronUp, CalendarIcon
 } from "lucide-react";
@@ -28,6 +30,7 @@ import type { PaymentMethod } from "@shared/schema";
 import PaymentMethodSelector from "@/components/payment-method-selector";
 import { StripeProvider } from "@/components/StripeProvider";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { UserNav } from "@/components/user-nav";
 
 type ServiceType = "wash" | "dry" | "both";
 
@@ -54,15 +57,7 @@ const SERVICE_FEE_PERCENT = 0.18;
 
 const SOIL_LEVELS = ["Light", "Medium", "Heavy"] as const;
 
-const USC_HOUSING = [
-  "Birnkrant Residential College", "Marks Tower", "New North Residential College",
-  "Pardee Tower", "McCarthy Honors Residential College", "Parkside Arts & Humanities Residential College",
-  "Parkside International Residential College", "Cale and Irani Residential College",
-  "Cardinal Gardens", "Parkside Apartments", "Webb Tower", "Annenberg House",
-  "Cardinal ’N Gold", "Century Apartments", "Cowlings and Ilium Residential College",
-  "La Sorbonne Apartments", "McClintock Apartments", "McMorrow Residential College",
-  "Nemirovsky and Bohnett Residential College", "Troy Hall"
-];
+// Using global USC_BUILDINGS from constants.ts instead of local list
 
 const SCHEDULE_WINDOWS = ["ASAP", ...Array.from({ length: 12 }, (_, i) => {
   const date = new Date();
@@ -84,7 +79,7 @@ export default function LaundryPage() {
   const [soilLevel, setSoilLevel] = useState<string>("Light");
   const [dryHeat, setDryHeat] = useState<string>("Medium");
   const [dryCycle, setDryCycle] = useState<string>("Normal");
-  const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLocation, setPickupLocation] = useState(user?.building_name || "");
   const [schedule, setSchedule] = useState("ASAP");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [timeWindow, setTimeWindow] = useState<string>("10:00 AM - 11:00 AM");
@@ -188,20 +183,7 @@ export default function LaundryPage() {
             <WashingMachine className="w-5 h-5 text-violet-600" />
             <span className="font-bold text-lg" data-testid="text-laundry-title">Laundry Service</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={user?.profileImageUrl ?? undefined} />
-              <AvatarFallback className="text-xs">
-                {(user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")}
-              </AvatarFallback>
-            </Avatar>
-            <button 
-              onClick={() => logout()}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          <UserNav />
         </div>
       </header>
 
@@ -590,6 +572,7 @@ function CheckoutForm({
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
   const [localPickupLocation, setLocalPickupLocation] = useState(orderData.pickupLocation);
 
   const createOrderMutation = useMutation({
@@ -615,7 +598,17 @@ function CheckoutForm({
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      if (saveAsDefault && localPickupLocation) {
+        try {
+          await apiRequest("PUT", "/api/auth/profile", {
+            building_name: localPickupLocation
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        } catch (err) {
+          console.error("Failed to update default building:", err);
+        }
+      }
       toast({ title: "Order Placed!", description: "A Tasker will be notified via USC housing services." });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/my/posted"] });
       onClose();
@@ -679,18 +672,34 @@ function CheckoutForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="pickup-location">Confirm USC On-Campus Housing *</Label>
-        <Select value={localPickupLocation} onValueChange={setLocalPickupLocation}>
-          <SelectTrigger id="pickup-location">
-            <SelectValue placeholder="Select building..." />
-          </SelectTrigger>
-          <SelectContent>
-            {USC_HOUSING.map((building) => (
-              <SelectItem key={building} value={building}>{building}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="pickup-location">Confirm USC On-Campus Housing *</Label>
+          <Select value={localPickupLocation} onValueChange={setLocalPickupLocation}>
+            <SelectTrigger id="pickup-location">
+              <SelectValue placeholder="Select building..." />
+            </SelectTrigger>
+            <SelectContent>
+              {USC_BUILDINGS.map((building) => (
+                <SelectItem key={building} value={building}>{building}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center space-x-2 px-1">
+          <Checkbox 
+            id="saveDefault" 
+            checked={saveAsDefault} 
+            onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
+          />
+          <label
+            htmlFor="saveDefault"
+            className="text-xs font-semibold leading-none cursor-pointer text-muted-foreground"
+          >
+            Save as my default building in settings
+          </label>
+        </div>
       </div>
 
       <div className="p-3 border rounded-lg bg-white">
