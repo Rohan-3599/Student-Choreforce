@@ -44,13 +44,6 @@ export async function setupVite(server: Server, app: Express) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      
-      // Handle the manual injection for the Google Maps API key
-      const mapsKey = process.env.VITE_GOOGLE_MAPS_API_KEY || "";
-      template = template.replaceAll(
-        "%VITE_GOOGLE_MAPS_API_KEY%",
-        mapsKey
-      );
 
       template = template.replace(
         `src="/src/main.tsx"`,
