@@ -26,11 +26,9 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [buildingName, setBuildingName] = useState(user?.building_name || "");
-  const [genderPreference, setGenderPreference] = useState(user?.gender_preference || "");
   const [languages, setLanguages] = useState<string[]>(user?.languages || []);
   
   const [taskerBuildingName, setTaskerBuildingName] = useState(user?.taskerBuildingName || "");
-  const [taskerGenderPreference, setTaskerGenderPreference] = useState(user?.taskerGenderPreference || "");
   const [taskerLanguages, setTaskerLanguages] = useState<string[]>(user?.taskerLanguages || []);
 
   const [profileImageUrl, setProfileImageUrl] = useState(user?.profileImageUrl || "");
@@ -47,11 +45,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setBuildingName(user.building_name || "");
-      setGenderPreference(user.gender_preference || "");
       setLanguages(user.languages || []);
       
       setTaskerBuildingName(user.taskerBuildingName || "");
-      setTaskerGenderPreference(user.taskerGenderPreference || "");
       setTaskerLanguages(user.taskerLanguages || []);
       
       setProfileImageUrl(user.profileImageUrl || "");
@@ -96,13 +92,11 @@ export default function ProfilePage() {
     if (activeTab === "requester") {
       updateProfileMutation.mutate({
         building_name: buildingName,
-        gender_preference: genderPreference,
         languages: languages,
       });
     } else {
       updateProfileMutation.mutate({
         tasker_building_name: taskerBuildingName,
-        tasker_gender_preference: taskerGenderPreference,
         tasker_languages: taskerLanguages,
       });
     }
@@ -164,7 +158,6 @@ export default function ProfilePage() {
             <TabsContent value="requester" className="space-y-6 pt-6">
               <ProfileSettingsFields 
                 buildingName={buildingName} setBuildingName={setBuildingName}
-                genderPreference={genderPreference} setGenderPreference={setGenderPreference}
                 languages={languages} setLanguages={setLanguages}
                 isTaskerTab={false}
               />
@@ -178,7 +171,6 @@ export default function ProfilePage() {
                 </div>
                 <ProfileSettingsFields 
                   buildingName={taskerBuildingName} setBuildingName={setTaskerBuildingName}
-                  genderPreference={taskerGenderPreference} setGenderPreference={setTaskerGenderPreference}
                   languages={taskerLanguages} setLanguages={setTaskerLanguages}
                   isTaskerTab={true}
                 />
@@ -200,7 +192,6 @@ export default function ProfilePage() {
 
 function ProfileSettingsFields({ 
   buildingName, setBuildingName, 
-  genderPreference, setGenderPreference, 
   languages, setLanguages,
   isTaskerTab
 }: any) {
@@ -235,23 +226,6 @@ function ProfileSettingsFields({
             ? "Where you prefer to find tasks." 
             : "This is auto-filled for your new orders."}
         </p>
-      </div>
-
-      <div className="space-y-3">
-        <Label htmlFor="genderPreference" className="text-sm font-semibold">
-          {isTaskerTab ? "Tasker Gender Category" : "Gender Preference for Tasker"}
-        </Label>
-        <Select value={genderPreference || "none"} onValueChange={(val) => setGenderPreference(val === "none" ? "" : val)}>
-          <SelectTrigger className="bg-accent/40 border-primary/10 text-left h-10 px-3">
-            <SelectValue placeholder="No Preference" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No Preference</SelectItem>
-            <SelectItem value="Male">Male</SelectItem>
-            <SelectItem value="Female">Female</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-4">

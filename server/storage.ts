@@ -18,30 +18,81 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getTasks(category?: string, excludePosterId?: string, gender?: string, building?: string, language?: string): Promise<(Task & { poster?: User | null })[]> {
-    const conditions = and(
+  async getTasks(
+    category?: string, 
+    excludePosterId?: string, 
+    taskerGender?: string, 
+    taskerComfort?: string
+  ): Promise<(Task & { poster?: User | null })[]> {
+    const conditions = [
       eq(tasks.status, "open"),
       eq(tasks.paymentStatus, "paid"),
-      category ? eq(tasks.category, category as any) : undefined,
-      excludePosterId ? ne(tasks.posterId, excludePosterId) : undefined
-    );
+    ];
+
+    if (category) {
+      conditions.push(eq(tasks.category, category as any));
+    }
+
+    if (excludePosterId) {
+      conditions.push(ne(tasks.posterId, excludePosterId));
+    }
+
+    // Join with users to filter by poster gender
     const taskRows = await db
-      .select()
+      .select({
+        task: tasks,
+        poster: users,
+      })
       .from(tasks)
-      .where(conditions)
+      .leftJoin(users, eq(tasks.posterId, users.id))
+      .where(and(...conditions))
       .orderBy(desc(tasks.createdAt));
 
-    let attached = await this.attachPosters(taskRows);
+    let attached = taskRows.map(row => ({
+      ...row.task,
+      poster: row.poster
+    }));
 
-    if (gender) {
-      attached = attached.filter(t => t.poster?.gender === gender);
-    }
-    if (building) {
-      const lowerBuilding = building.toLowerCase();
-      attached = attached.filter(t => t.location.toLowerCase().includes(lowerBuilding));
-    }
-    if (language) {
-      attached = attached.filter(t => t.poster?.languages?.includes(language));
+    // Apply strict gender matching algorithm
+    if (taskerGender) {
+      const g = (s: string | undefined | null) => {
+        if (!s) return "";
+        const lower = s.toLowerCase().replace(/_/g, " ").trim();
+        if (lower === "man" || lower === "men") return "man";
+        if (lower === "woman" || lower === "women") return "woman";
+        if (lower === "prefer not to say" || lower === "pnts") return "pnts";
+        return lower;
+      };
+
+      const normalizedTaskerGender = g(taskerGender);
+      const normalizedTaskerComfort = g(taskerComfort);
+
+      attached = attached.filter(t => {
+        const posterGender = g(t.poster?.gender);
+        const posterComfort = g(t.poster?.gender_comfort_preference);
+        
+        // Rule: Man Tasker matches Man Requester OR PNTS Requester comfortable with Men
+        if (normalizedTaskerGender === "man") {
+          return posterGender === "man" || (posterGender === "pnts" && posterComfort === "man");
+        }
+        
+        // Rule: Woman Tasker matches Woman Requester OR PNTS Requester comfortable with Women
+        if (normalizedTaskerGender === "woman") {
+          return posterGender === "woman" || (posterGender === "pnts" && posterComfort === "woman");
+        }
+        
+        // Rule: PNTS Tasker matches ALL members of comfort gender
+        if (normalizedTaskerGender === "pnts") {
+          return posterGender === normalizedTaskerComfort;
+        }
+
+        // If gender is identified but no rule matched, hide it.
+        if (normalizedTaskerGender === "man" || normalizedTaskerGender === "woman" || normalizedTaskerGender === "pnts") {
+          return false;
+        }
+
+        return true;
+      });
     }
 
     return attached;

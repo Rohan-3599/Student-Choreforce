@@ -33,6 +33,7 @@ export const users = pgTable("users", {
   building_name: varchar("building_name", { length: 128 }),
   gender_preference: varchar("gender_preference", { length: 32 }),
   language_preference: varchar("language_preference", { length: 64 }),
+  gender_comfort_preference: varchar("gender_comfort_preference", { length: 32 }),
   taskerBuildingName: varchar("tasker_building_name", { length: 128 }),
   taskerGenderPreference: varchar("tasker_gender_preference", { length: 32 }),
   taskerLanguages: jsonb("tasker_languages").$type<string[]>(),

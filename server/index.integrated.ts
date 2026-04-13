@@ -10,8 +10,9 @@ import taskerOnboard from "./tasker/onboard";
 import "./cron/payouts";
 
 export function mountIntegratedRoutes(app: express.Express) {
-    app.use(bodyParser.json());
-    app.use(cors());
+    // Removed redundant global middleware already handled in index.ts
+    // app.use(bodyParser.json());
+    // app.use(cors());
     // Removed redundant JWT-based /auth mount
     app.use("/api/users", usersRouter);
     app.use("/api/reviews", reviewsRouter);

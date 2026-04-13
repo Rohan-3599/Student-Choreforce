@@ -135,7 +135,7 @@ export function TaskerVerificationFlow({ onSuccess }: { onSuccess: () => void })
                 />
                 <div className="grid gap-1.5 leading-none">
                   <Label htmlFor="us-citizen" className="peer-disabled:cursor-not-allowed peer-disabled:opacity-70 font-semibold">
-                    I am a US Citizen
+                    I’m us citizen who is 18 years old and eligible to work
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     Required to perform tasks and receive payouts.

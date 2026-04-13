@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,14 +23,12 @@ export default function TaskerPage() {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | "all">("all");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [genderFilter, setGenderFilter] = useState<string>(user?.taskerGenderPreference || "");
-  const [buildingFilter, setBuildingFilter] = useState<string>(user?.taskerBuildingName || "");
+  const [genderFilter, setGenderFilter] = useState<string>("");
+  const [buildingFilter, setBuildingFilter] = useState<string>("");
   const [languageFilter, setLanguageFilter] = useState<string>(user?.taskerLanguages?.[0] || "");
 
   let queryUrl = `/api/tasks?`;
   if (selectedCategory !== "all") queryUrl += `category=${selectedCategory}&`;
-  if (genderFilter) queryUrl += `gender=${genderFilter}&`;
-  if (buildingFilter) queryUrl += `building=${encodeURIComponent(buildingFilter)}&`;
   if (languageFilter) queryUrl += `language=${encodeURIComponent(languageFilter)}&`;
 
   const { data: allTasks, isLoading: allLoading } = useQuery<(Task & { poster?: User | null })[]>({
@@ -78,7 +76,28 @@ export default function TaskerPage() {
     },
   });
 
-  const openTasks = allTasks?.filter((t) => t.status === "open") ?? [];
+  const openTasks = useMemo(() => {
+    if (!allTasks) return [];
+    
+    let filtered = allTasks.filter((t) => t.status === "open");
+    
+    // Sorting logic: prioritize the building filter if selected, otherwise prioritize the user's preferred location.
+    return [...filtered].sort((a, b) => {
+      const activeFilter = buildingFilter;
+      const userPreference = user?.taskerBuildingName;
+      
+      const priorityBuilding = activeFilter || userPreference;
+      if (!priorityBuilding) return 0;
+      
+      const aMatches = a.location.toLowerCase().includes(priorityBuilding.toLowerCase());
+      const bMatches = b.location.toLowerCase().includes(priorityBuilding.toLowerCase());
+      
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  }, [allTasks, buildingFilter, user?.taskerBuildingName, user?.building_name]);
+
   const myActiveClaimed = claimedTasks?.filter((t) => t.status === "claimed") ?? [];
   const myCompletedClaimed = claimedTasks?.filter((t) => t.status === "completed") ?? [];
 
@@ -154,12 +173,10 @@ export default function TaskerPage() {
               <TaskFilters 
                 selectedCategory={selectedCategory} 
                 onCategoryChange={setSelectedCategory} 
-                genderFilter={genderFilter}
-                onGenderChange={setGenderFilter}
-                buildingFilter={buildingFilter}
-                onBuildingChange={setBuildingFilter}
                 languageFilter={languageFilter}
                 onLanguageChange={setLanguageFilter}
+                buildingFilter={buildingFilter}
+                onBuildingChange={setBuildingFilter}
               />
               <p className="text-sm text-muted-foreground" data-testid="text-task-count">
                 {openTasks.length} available {openTasks.length === 1 ? "task" : "tasks"}

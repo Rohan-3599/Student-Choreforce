@@ -3,7 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Clock, DollarSign, User, CreditCard } from "lucide-react";
+import { 
+  MapPin, 
+  Clock, 
+  DollarSign, 
+  User, 
+  CreditCard, 
+  Camera,
+  Plus,
+  AlertTriangle,
+  X
+} from "lucide-react";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import { TaskChat } from "@/components/task-chat";
 import { PaymentMethodBadge } from "@/components/payment-method-selector";
@@ -104,6 +114,21 @@ export function TaskDetailDialog({
             </div>
           )}
 
+
+          {task.photos && Array.isArray(task.photos) && task.photos.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                <Camera className="w-3.5 h-3.5" /> Task Gallery
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {task.photos.map((photo, i) => (
+                  <div key={i} className="relative aspect-video rounded-lg overflow-hidden border bg-muted/20">
+                    <img src={photo} alt={`Task detail ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {task.createdAt && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

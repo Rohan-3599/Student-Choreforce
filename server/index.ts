@@ -6,11 +6,14 @@ import { createServer } from "http";
 import dotenv from "dotenv";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import cors from "cors";
 
 dotenv.config({ path: "./server/.env" });
 
 const app = express();
 const httpServer = createServer(app);
+
+app.use(cors());
 
 declare module "http" {
   interface IncomingMessage {
@@ -20,13 +23,14 @@ declare module "http" {
 
 app.use(
   express.json({
+    limit: "10mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ limit: "10mb", extended: false }));
 
 // Routes are mounted inside the async block below to ensure proper initialization order.
 
@@ -99,6 +103,7 @@ app.use((req, res, next) => {
       ADD COLUMN IF NOT EXISTS building_name varchar(128),
       ADD COLUMN IF NOT EXISTS gender_preference varchar(32),
       ADD COLUMN IF NOT EXISTS language_preference varchar(64),
+      ADD COLUMN IF NOT EXISTS gender_comfort_preference varchar(32),
       ADD COLUMN IF NOT EXISTS reset_password_token varchar(128),
       ADD COLUMN IF NOT EXISTS reset_password_expires timestamp;
     `);

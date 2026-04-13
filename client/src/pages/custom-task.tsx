@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -47,8 +47,7 @@ export default function CustomTaskPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(15);
-  const [location, setLocation] = useState(user?.building_name || "");
-  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [location, setLocation] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [moderationError, setModerationError] = useState<string | null>(null);
@@ -57,6 +56,95 @@ export default function CustomTaskPage() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [customerSessionClientSecret, setCustomerSessionClientSecret] = useState<string | null>(null);
   const [isInitializingPayment, setIsInitializingPayment] = useState(false);
+  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+
+  const autocompleteInputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!autocompleteInputRef.current) return;
+
+    // Wait for the google global to be available
+    const initAutocomplete = () => {
+      const google = (window as any).google;
+      const autocomplete = new google.maps.places.Autocomplete(autocompleteInputRef.current!, {
+        componentRestrictions: { country: "us" },
+        fields: ["address_components", "geometry", "formatted_address"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+          toast({ 
+            title: "Location not found", 
+            description: "Please select a location from the dropdown.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const address = place.formatted_address || "";
+
+        setLocation(address);
+        setCoordinates({ lat, lng });
+
+        // Update map
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setCenter({ lat, lng });
+          mapInstanceRef.current.setZoom(16);
+          
+          if (markerRef.current) {
+            markerRef.current.setPosition({ lat, lng });
+            markerRef.current.setVisible(true);
+          } else {
+            markerRef.current = new google.maps.Marker({
+              position: { lat, lng },
+              map: mapInstanceRef.current,
+              title: "Task Location",
+            });
+          }
+        }
+      });
+    };
+
+    if (window.google && window.google.maps) {
+      initAutocomplete();
+    } else {
+      // Small fallback if script is still loading
+      const interval = setInterval(() => {
+        if (window.google && window.google.maps) {
+          initAutocomplete();
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || !(window as any).google) return;
+
+    if (!mapInstanceRef.current) {
+      const google = (window as any).google;
+      mapInstanceRef.current = new google.maps.Map(mapContainerRef.current, {
+        center: { lat: 34.0224, lng: -118.2851 }, // Default to USC
+        zoom: 13,
+        disableDefaultUI: true,
+        zoomControl: true,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{ "visibility": "off" }]
+          }
+        ]
+      });
+    }
+  }, []);
 
   const subtotal = price;
   const serviceFee = useMemo(() => subtotal * 0.18, [subtotal]);
@@ -69,8 +157,8 @@ export default function CustomTaskPage() {
     if (!files) return;
 
     Array.from(files).forEach(file => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "File too large", description: "Keep it under 5MB", variant: "destructive" });
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Please upload an image smaller than 10MB", variant: "destructive" });
         return;
       }
 
@@ -314,26 +402,35 @@ export default function CustomTaskPage() {
               <h3 className="font-semibold text-base">Location</h3>
             </div>
             <div className="space-y-4">
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a USC building" />
-                </SelectTrigger>
-                <SelectContent>
-                  {USC_BUILDINGS.map((building) => (
-                    <SelectItem key={building} value={building}>{building}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center space-x-2 px-1">
-                <Checkbox 
-                  id="saveDefault" 
-                  checked={saveAsDefault} 
-                  onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <Input
+                  ref={autocompleteInputRef}
+                  placeholder="Search any address or building..."
+                  className="pl-9 h-11"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
                 />
-                <label htmlFor="saveDefault" className="text-xs text-muted-foreground cursor-pointer">
-                  Save as default location
-                </label>
               </div>
+              
+              <div 
+                ref={mapContainerRef} 
+                className="w-full h-48 rounded-lg overflow-hidden border bg-muted/20 relative"
+                style={{ zIndex: 0 }}
+              >
+                {!coordinates && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 backdrop-blur-[1px]">
+                    <div className="bg-background/90 px-3 py-1.5 rounded-full border shadow-sm text-[10px] font-medium flex items-center gap-2">
+                      <MapPin className="w-3 h-3 text-red-500" />
+                      Map Preview Ready
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground italic">
+                You can specify any location near USC or within Los Angeles. Select from the dropdown for the best accuracy.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -452,14 +549,6 @@ function CheckoutForm({
       return res.json();
     },
     onSuccess: async () => {
-      if (saveAsDefault && location) {
-        try {
-          await apiRequest("PUT", "/api/auth/profile", { building_name: location });
-          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-        } catch (err) {
-          console.error("Failed to update default building:", err);
-        }
-      }
       toast({ title: "Task posted!", description: "Your task is now visible to Taskers." });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/my/posted"] });
       onClose();
@@ -498,26 +587,15 @@ function CheckoutForm({
       <div className="space-y-4">
         <div className="space-y-2">
           <Label>Confirm Location *</Label>
-          <Select value={location} onValueChange={setLocation}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select building..." />
-            </SelectTrigger>
-            <SelectContent>
-              {USC_BUILDINGS.map((building) => (
-                <SelectItem key={building} value={building}>{building}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="saveDefault" 
-            onCheckedChange={(checked) => setSaveAsDefault(checked === true)}
-          />
-          <Label htmlFor="saveDefault" className="text-xs text-muted-foreground cursor-pointer">
-            Save as default location
-          </Label>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Confirm the exact address..."
+              className="pl-9"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

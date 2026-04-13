@@ -22,6 +22,7 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [gender, setGender] = useState(genders[2]);
   const [languages, setLanguages] = useState<string[]>(["English"]);
+  const [genderComfort, setGenderComfort] = useState<string>("");
   const [error, setError] = useState("");
 
   const { register, isRegistering } = useAuth();
@@ -54,6 +55,11 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
       return;
     }
 
+    if (gender === "Prefer Not to Say" && !genderComfort) {
+      setError("Please select which gender you are more comfortable with.");
+      return;
+    }
+
     try {
       const payload = {
         email, 
@@ -62,6 +68,8 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
         last_name: lastName,
         birth_date: birthDate ? birthDate.toISOString().slice(0, 10) : null,
         gender: gender.toLowerCase().replaceAll(" ", "_"),
+        gender_comfort_preference: genderComfort,
+        is_us_citizen: false,
         languages
       };
       await register(payload);
@@ -180,7 +188,23 @@ export default function SignupForm({ onToggle, onSuccess }: { onToggle: () => vo
               </div>
             </div>
 
-      
+              {gender === "Prefer Not to Say" && (
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="comfortPreference">Which gender are you more comfortable with? *</Label>
+                  <Select value={genderComfort} onValueChange={setGenderComfort}>
+                    <SelectTrigger id="comfortPreference" className="h-10">
+                      <SelectValue placeholder="Select preference" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="man">Man</SelectItem>
+                      <SelectItem value="woman">Woman</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    This helps us match you with compatible Trojans.
+                  </p>
+                </div>
+              )}
 
             <div className="space-y-3 pt-2 border-t mt-4">
               <Label className="font-semibold text-sm">Languages Spoken</Label>

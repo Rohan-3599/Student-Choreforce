@@ -49,6 +49,16 @@ export function TaskCard({ task, currentUserId, onClaim, onComplete, onViewDetai
           </p>
         </div>
 
+        {(task.photos as string[])?.length > 0 && (
+          <div className="relative aspect-video w-full rounded-md overflow-hidden bg-muted border mb-2">
+            <img 
+              src={(task.photos as string[])[0]} 
+              alt="Task preview" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+            />
+          </div>
+        )}
+
         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1">
             <MapPin className="w-3 h-3" />

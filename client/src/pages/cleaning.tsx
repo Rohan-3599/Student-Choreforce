@@ -22,7 +22,7 @@ import { USC_BUILDINGS } from "@/lib/constants";
 import {
   SprayCan, ArrowLeft, CheckCircle, Clock, Info,
   ChefHat, Bath, Bed, Camera, Calendar as CalendarIcon,
-  X, Loader2, ChevronDown
+  X, Loader2, ChevronDown, Plus, AlertTriangle, MapPin
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link, useLocation } from "wouter";
@@ -60,9 +60,8 @@ export default function CleaningPage() {
   const [isInitializingPayment, setIsInitializingPayment] = useState(false);
 
   const subtotal = useMemo(() => {
-    const laborPerRoom = (timeInMinutes / 15) * PRICE_PER_15_MIN;
-    return laborPerRoom * Math.max(1, selectedRooms.length);
-  }, [timeInMinutes, selectedRooms.length]);
+    return (timeInMinutes / 15) * PRICE_PER_15_MIN;
+  }, [timeInMinutes]);
 
   const serviceFee = useMemo(() => {
     return subtotal * 0.18;
@@ -78,28 +77,30 @@ export default function CleaningPage() {
     );
   };
 
-  const handlePhotoUpload = (roomId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Keep it under 5MB", variant: "destructive" });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPhotos(prev => ({ ...prev, [roomId]: event.target?.result as string }));
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Please upload an image smaller than 10MB", variant: "destructive" });
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPhotos(prev => ({ ...prev, [Math.random().toString(36).substr(2, 9)]: event.target?.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const removePhoto = (roomId: string) => {
+  const removePhoto = (id: string) => {
     setPhotos(prev => {
       const next = { ...prev };
-      delete next[roomId];
+      delete next[id];
       return next;
     });
   };
@@ -125,39 +126,8 @@ export default function CleaningPage() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6 space-y-6">
         <div className="text-center space-y-1">
           <h2 className="text-2xl font-bold font-outfit">Detailed Dorm Cleaning</h2>
-          <p className="text-muted-foreground text-sm">Select rooms, time, and schedule your service</p>
+          <p className="text-muted-foreground text-sm">Submit your request by selecting the time needed below.</p>
         </div>
-
-        {/* Room Selection */}
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <SprayCan className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-base">Which rooms need cleaning?</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {ROOMS.map((room) => {
-                const Icon = room.icon;
-                const isSelected = selectedRooms.includes(room.id);
-                return (
-                  <button
-                    key={room.id}
-                    onClick={() => toggleRoom(room.id)}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all",
-                      isSelected 
-                        ? "border-blue-600 bg-blue-50 text-blue-600" 
-                        : "border-muted hover:border-muted-foreground/30"
-                    )}
-                  >
-                    <Icon className="w-8 h-8" />
-                    <span className="text-sm font-medium">{room.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Time Selection */}
         <Card>
@@ -184,54 +154,53 @@ export default function CleaningPage() {
               </Select>
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
                 <Info className="w-4 h-4 shrink-0" />
-                <p>Labor is calculated per 15-minute block. More rooms will require more time and care.</p>
+                <p>Labor is calculated at $12.50 per 15-minute block ($50/hour). Please estimate the total time needed for your cleaning.</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Photo Upload (Optional) */}
+        {/* Mandatory Photo Upload */}
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Camera className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-base">Add Room Photos (Optional)</h3>
+             <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-base">Upload Mandatory Photos *</h3>
+              </div>
+              <Badge variant="outline" className="text-blue-600 border-blue-200">Required</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Photos help Taskers understand the scope of work.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {ROOMS.map((room) => {
-                const hasPhoto = !!photos[room.id];
-                return (
-                  <div key={room.id} className="relative group">
-                    {hasPhoto ? (
-                      <div className="relative aspect-square rounded-lg overflow-hidden border">
-                        <img src={photos[room.id]} alt={room.label} className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => removePhoto(room.id)}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-1 text-center">
-                          {room.label}
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-muted hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all">
-                        <Camera className="w-6 h-6 text-muted-foreground mb-1" />
-                        <span className="text-[11px] font-medium text-muted-foreground text-center px-2">Upload {room.label}</span>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handlePhotoUpload(room.id, e)}
-                        />
-                      </label>
-                    )}
-                  </div>
-                );
-              })}
+            <p className="text-sm text-muted-foreground">Please provide at least one photo of the area(s) needing cleaning.</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {Object.entries(photos).map(([id, url]) => (
+                <div key={id} className="relative group aspect-square rounded-lg overflow-hidden border shadow-sm">
+                  <img src={url} alt="Task" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => removePhoto(id)}
+                    className="absolute top-1.5 right-1.5 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <label className="flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-muted hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all">
+                <Plus className="w-6 h-6 text-muted-foreground mb-1" />
+                <span className="text-[10px] font-medium text-muted-foreground">Add Photo</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  className="hidden" 
+                  onChange={handlePhotoUpload} 
+                />
+              </label>
             </div>
+            {Object.keys(photos).length === 0 && (
+              <p className="text-[11px] text-destructive flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Please upload at least one photo to proceed.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -323,11 +292,7 @@ export default function CleaningPage() {
             <CollapsibleContent className="space-y-2 pt-2 border-t">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Labor Cost ({(timeInMinutes/15).toFixed(0)} x 15m @ $12.50)</span>
-                <span>${((timeInMinutes/15)*12.50).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Total Rooms selected</span>
-                <span>x {Math.max(1, selectedRooms.length)}</span>
+                <span>${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm font-medium pt-1 border-t border-dashed">
                 <span>Subtotal</span>
@@ -342,7 +307,7 @@ export default function CleaningPage() {
 
         <Button
           className="w-full h-12 text-lg font-bold"
-          disabled={selectedRooms.length === 0 || isInitializingPayment}
+          disabled={Object.keys(photos).length === 0 || isInitializingPayment}
           onClick={async () => {
             try {
               setIsInitializingPayment(true);
@@ -366,7 +331,7 @@ export default function CleaningPage() {
               Initializing...
             </div>
           ) : (
-            selectedRooms.length === 0 ? "Select at least one room" : `Continue — $${totalPrice.toFixed(2)}`
+            Object.keys(photos).length === 0 ? "Upload photos to continue" : `Continue — $${totalPrice.toFixed(2)}`
           )}
         </Button>
       </main>
@@ -425,14 +390,14 @@ function CheckoutForm({
       const { selectedRooms, timeInMinutes, notes, selectedDate, timeWindow, photos } = orderData;
       
       const res = await apiRequest("POST", "/api/tasks", {
-        title: `Dorm Cleaning — ${selectedRooms.join(", ")}`,
-        description: `Rooms: ${selectedRooms.join(", ")}. Duration: ${timeInMinutes}m. Scheduled: ${format(new Date(selectedDate), "PPPP")} @ ${timeWindow}. ${notes ? `Instructions: ${notes}` : ""}`.trim(),
+        title: `Dorm Cleaning — ${timeInMinutes}m`,
+        description: `Duration: ${timeInMinutes}m. Scheduled: ${format(new Date(selectedDate), "PPPP")} @ ${timeWindow}. ${notes ? `Instructions: ${notes}` : ""}`.trim(),
         category: "dorm_cleaning",
         budget: Math.round(totalPrice * 100),
         location: dormLocation,
         paymentStatus: "paid",
         stripePaymentIntentId: paymentIntentId,
-        photos: photos
+        photos: Object.values(photos)
       });
       return res.json();
     },

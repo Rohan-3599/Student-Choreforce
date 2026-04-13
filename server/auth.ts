@@ -86,16 +86,19 @@ export function setupAuth(app: Express) {
   // Auth routes
   app.post("/api/auth/register", async (req, res, next) => {
     try {
-      const { email, password, first_name, last_name, birth_date, gender, usc_id, languages } = req.body;
+      const { email, password, first_name, last_name, birth_date, gender, usc_id, languages, gender_comfort_preference, is_us_citizen } = req.body;
 
       // Enforce USC domain
       if (!email || !email.toLowerCase().endsWith("@usc.edu")) {
         return res.status(400).json({ message: "Only @usc.edu email addresses are allowed." });
       }
 
-      const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, email.toLowerCase())
+      });
+
       if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
+        return res.status(400).json({ message: "Email already exists" });
       }
 
       const hashedPassword = await hashPassword(password);
@@ -108,6 +111,8 @@ export function setupAuth(app: Express) {
         gender,
         usc_id,
         languages: languages || [],
+        gender_comfort_preference,
+        is_us_citizen: !!is_us_citizen,
       }).returning();
 
       // Send verification email
